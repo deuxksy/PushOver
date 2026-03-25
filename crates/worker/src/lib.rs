@@ -7,7 +7,7 @@ mod utils;
 use worker::*;
 use types::ErrorResponse;
 use middleware::{with_cors, handle_options};
-use routes::{send_message, get_status};
+use routes::{send_message, get_status, receive_webhook, register_webhook, get_webhooks, delete_webhook};
 
 #[event(fetch)]
 pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Response> {
@@ -18,6 +18,10 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
         .get("/health", |_, _| Response::ok("OK"))
         .post_async("/api/v1/messages", send_message)
         .get_async("/api/v1/messages/:receipt/status", get_status)
+        .post_async("/api/v1/webhooks", receive_webhook)
+        .post_async("/api/v1/webhooks/register", register_webhook)
+        .get_async("/api/v1/webhooks", get_webhooks)
+        .delete_async("/api/v1/webhooks/:id", delete_webhook)
         .get_async("/404", |_, _| async {
             Response::from_json(&ErrorResponse::not_found("Endpoint not found"))
         })
