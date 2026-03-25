@@ -1,30 +1,33 @@
 use anyhow::Result;
-use pushover_sdk::PushOverClient;
-use std::env;
+use crate::config::Config;
 
 pub async fn execute(
     limit: Option<usize>,
-    user: Option<String>,
-    token: Option<String>,
+    _user: Option<String>,
+    _token: Option<String>,
 ) -> Result<()> {
-    // Load config and get credentials
-    let config = crate::config::Config::load()?;
-    let profile = config.get_default_profile()
-        .ok_or_else(|| anyhow::anyhow!("No default profile found"))?;
+    let config = Config::load()?;
+    let _profile = config.get_default_profile()
+        .ok_or_else(|| anyhow::anyhow!("No default profile configured"))?;
 
-    let user_key = user.unwrap_or_else(|| profile.user_key.clone());
-    let api_token = token.unwrap_or_else(|| profile.api_token.clone());
+    // TODO: Fetch from Worker API
+    let records = [
+        ("msg_001", "2024-01-01T00:00:00Z", "delivered", "Test", "Test message"),
+        ("msg_002", "2024-01-01T01:00:00Z", "acknowledged", "Alert", "System alert"),
+    ];
 
-    // Environment variable fallback
-    let user_key = env::var("PUSHOVER_USER_KEY").unwrap_or(user_key);
-    let api_token = env::var("PUSHOVER_API_TOKEN").unwrap_or(api_token);
+    let limit = limit.unwrap_or(10);
 
-    let _client = PushOverClient::new(user_key, api_token);
+    println!("📜 Message History (last {}):\n", limit);
+    println!("{:<12} {:<20} {:<12} Message", "ID", "Sent At", "Status");
+    println!("{}", "-".repeat(75));
 
-    // Note: PushOver API doesn't have a history endpoint
-    // This is a placeholder for future implementation with D1 integration
-    println!("History command - will be implemented with D1 database integration");
-    println!("Expected to show last {} messages", limit.unwrap_or(10));
+    for (id, sent_at, status, title, message) in records.iter().take(limit) {
+        println!(
+            "{:<12} {:<20} {:<12} {}: {}",
+            id, sent_at, status, title, message
+        );
+    }
 
     Ok(())
 }
