@@ -82,7 +82,20 @@ async fn main() -> Result<()> {
 
     match cli.command {
         Commands::Send { message, title, user, token, device, priority, url, url_title, sound, timestamp, html } => {
-            commands::send::execute(message, title, user, token, device, priority, url, url_title, sound, timestamp, html).await?;
+            let options = commands::send::SendOptions {
+                message,
+                title,
+                user,
+                token,
+                device,
+                priority,
+                url,
+                url_title,
+                sound,
+                timestamp,
+                html,
+            };
+            commands::send::execute(options).await?;
         }
         Commands::History { limit, user, token } => {
             commands::history::execute(limit, user, token).await?;
