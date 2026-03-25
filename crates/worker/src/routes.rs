@@ -1,7 +1,7 @@
 use worker::*;
 use crate::types::{ErrorResponse, WebhookMessage};
 use crate::middleware::require_auth;
-use crate::crypto::verify_signature;
+use crate::crypto::{verify_signature, generate_signature};
 
 pub async fn send_message(
     mut req: Request,
@@ -86,5 +86,69 @@ pub async fn receive_webhook(
     Ok(Response::from_json(&serde_json::json!({
         "status": "success",
         "message": "Webhook received"
+    }))?)
+}
+
+pub async fn register_webhook(
+    mut req: Request,
+    ctx: RouteContext<()>,
+) -> Result<Response> {
+    let auth_resp = require_auth(&req, &ctx).await?;
+    if auth_resp.status_code() != 200 {
+        return Ok(auth_resp);
+    }
+
+    let body: serde_json::Value = req.json().await?;
+
+    let url = body.get("url")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| Error::from("Missing url field"))?;
+
+    // TODO: Store in D1 database
+    // TODO: Generate webhook secret
+
+    Ok(Response::from_json(&serde_json::json!({
+        "status": "success",
+        "message": "Webhook registered",
+        "webhook": {
+            "id": "wh_123",
+            "url": url,
+            "secret": "placeholder_secret"
+        }
+    }))?)
+}
+
+pub async fn get_webhooks(
+    req: Request,
+    ctx: RouteContext<()>,
+) -> Result<Response> {
+    let auth_resp = require_auth(&req, &ctx).await?;
+    if auth_resp.status_code() != 200 {
+        return Ok(auth_resp);
+    }
+
+    // TODO: Fetch from D1 database
+
+    Ok(Response::from_json(&serde_json::json!({
+        "status": "success",
+        "webhooks": []
+    }))?)
+}
+
+pub async fn delete_webhook(
+    req: Request,
+    ctx: RouteContext<()>,
+) -> Result<Response> {
+    let auth_resp = require_auth(&req, &ctx).await?;
+    if auth_resp.status_code() != 200 {
+        return Ok(auth_resp);
+    }
+
+    // TODO: Get webhook ID from path params
+    // TODO: Delete from D1 database
+
+    Ok(Response::from_json(&serde_json::json!({
+        "status": "success",
+        "message": "Webhook deleted"
     }))?)
 }
