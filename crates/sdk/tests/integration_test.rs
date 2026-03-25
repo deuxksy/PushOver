@@ -18,11 +18,8 @@ async fn test_send_message_success() {
         .await;
 
     // MockServer URL을 사용하는 클라이언트 생성
-    let client = PushOverClient::with_base_url(
-        "test_user".into(),
-        "test_token".into(),
-        mock_server.uri(),
-    );
+    let client =
+        PushOverClient::with_base_url("test_user".into(), "test_token".into(), mock_server.uri());
 
     let msg = Message {
         message: "Hello".to_string(),

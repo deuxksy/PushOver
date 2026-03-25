@@ -32,8 +32,8 @@
   "hotPaths": [
     {
       "path": "docs/superpowers/plans/2026-03-26-pushover-serverless.md",
-      "accessCount": 65,
-      "lastAccessed": 1774463619464,
+      "accessCount": 66,
+      "lastAccessed": 1774464016581,
       "type": "file"
     },
     {
@@ -49,6 +49,12 @@
       "type": "file"
     },
     {
+      "path": "crates/sdk/Cargo.toml",
+      "accessCount": 14,
+      "lastAccessed": 1774464181062,
+      "type": "file"
+    },
+    {
       "path": "crates/sdk/tests/integration_test.rs",
       "accessCount": 11,
       "lastAccessed": 1774463971650,
@@ -56,14 +62,8 @@
     },
     {
       "path": "crates/sdk/src/lib.rs",
-      "accessCount": 5,
-      "lastAccessed": 1774463749628,
-      "type": "file"
-    },
-    {
-      "path": "crates/sdk/Cargo.toml",
-      "accessCount": 5,
-      "lastAccessed": 1774463753918,
+      "accessCount": 9,
+      "lastAccessed": 1774464191277,
       "type": "file"
     },
     {
@@ -73,15 +73,15 @@
       "type": "directory"
     },
     {
-      "path": ".claude/settings.local.json",
-      "accessCount": 2,
-      "lastAccessed": 1774463223587,
+      "path": "crates/sdk/src/error.rs",
+      "accessCount": 3,
+      "lastAccessed": 1774464041080,
       "type": "file"
     },
     {
-      "path": "crates/sdk/src/error.rs",
+      "path": ".claude/settings.local.json",
       "accessCount": 2,
-      "lastAccessed": 1774463712237,
+      "lastAccessed": 1774463223587,
       "type": "file"
     },
     {
@@ -100,6 +100,12 @@
       "path": "crates/cli/Cargo.toml",
       "accessCount": 2,
       "lastAccessed": 1774463883649,
+      "type": "file"
+    },
+    {
+      "path": "crates/sdk/src/webhook.rs",
+      "accessCount": 2,
+      "lastAccessed": 1774464127012,
       "type": "file"
     }
   ],

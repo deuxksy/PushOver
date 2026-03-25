@@ -74,12 +74,7 @@ impl PushOverClient {
         }
 
         let url = format!("{}/1/messages.json", self.base_url);
-        let resp = self
-            .client
-            .post(&url)
-            .form(&form)
-            .send()
-            .await?;
+        let resp = self.client.post(&url).form(&form).send().await?;
 
         let status = resp.status().as_u16();
         let body = resp.text().await?;

@@ -4,7 +4,12 @@ pub mod models;
 pub use error::PushOverError;
 pub use models::{Message, PriorityArgs, Response, WebhookPayload};
 
-#[cfg(not(feature = "cloudflare-worker"))]
+#[cfg(feature = "reqwest")]
 pub mod http_client;
-#[cfg(not(feature = "cloudflare-worker"))]
+#[cfg(feature = "reqwest")]
 pub use http_client::PushOverClient;
+
+#[cfg(feature = "webhook")]
+pub mod webhook;
+#[cfg(feature = "webhook")]
+pub use webhook::{parse_webhook_payload, verify_webhook_signature};

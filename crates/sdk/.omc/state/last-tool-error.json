@@ -1,0 +1,7 @@
+{
+  "tool_name": "Read",
+  "tool_input_preview": "{\"file_path\":\"/Users/crong/git/PushOver/crates/sdk/src/webhook/verification.rs\"}",
+  "error": "File does not exist. Note: your current working directory is /Users/crong/git/PushOver/crates/sdk.",
+  "timestamp": "2026-03-25T18:45:52.148Z",
+  "retry_count": 1
+}
