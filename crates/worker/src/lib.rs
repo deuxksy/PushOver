@@ -2,12 +2,20 @@ mod types;
 mod crypto;
 mod middleware;
 mod routes;
+mod recovery;
 mod utils;
 
 use worker::*;
 use types::ErrorResponse;
 use middleware::{with_cors, handle_options};
 use routes::{send_message, get_status, receive_webhook, register_webhook, get_webhooks, delete_webhook};
+use recovery::handle_failed_messages;
+
+#[event(scheduled)]
+pub async fn scheduled(event: ScheduledEvent, env: Env, _ctx: worker::Context) -> Result<()> {
+    handle_failed_messages(event, env, _ctx).await?;
+    Ok(())
+}
 
 #[event(fetch)]
 pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Response> {
