@@ -14,8 +14,8 @@ pub async fn handle_options(_req: Request, _ctx: RouteContext<()>) -> Result<Res
 }
 
 pub async fn require_auth(
-    req: Request,
-    _ctx: RouteContext<()>,
+    req: &Request,
+    _ctx: &RouteContext<()>,
 ) -> Result<Response> {
     let auth_header = req.headers().get("Authorization")?;
 

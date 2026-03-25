@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"cargo check --package pushover-sdk\",\"description\":\"Verify compilation after fixing duplicate dependencies\"}",
-  "error": "Exit code 101\n    Updating crates.io index\n     Locking 11 packages to latest compatible versions\n      Adding block-buffer v0.10.4\n      Adding cpufeatures v0.2.17\n      Adding crypto-common v0.1.7\n      Adding digest v0.10.7\n      Adding generic-array v0.14.7 (available: v0.14.9)\n      Adding hex v0.4.3\n      Adding hmac v0.12.1\n      Adding sha2 v0.10.9 (available: v0.11.0)\n      Adding subtle v2.6.1\n      Adding typenum v1.19.0\n      Adding version_check v0.9.5\n    Checking pushover-sdk v0.1...",
-  "timestamp": "2026-03-25T18:41:43.104Z",
-  "retry_count": 3
+  "tool_input_preview": "{\"command\":\"git add crates/worker/src/types.rs && git commit -m \\\"feat: Worker Types & Error Responses (이미 구현됨)\\n\\n- WebhookMessage 구조체\\n- ErrorResponse (HTTP 응답 표준)\\n- 타임스탬프 헬퍼 함수\\n- SDK Message → We...",
+  "error": "Exit code 1\nOn branch main\nYour branch is based on 'origin/main', but the upstream is gone.\n  (use \"git branch --unset-upstream\" to fixup)\n\nChanges not staged for commit:\n  (use \"git add <file>...\" to update what will be committed)\n  (use \"git restore <file>...\" to discard changes in working directory)\n\tmodified:   .omc/project-memory.json\n\tmodified:   .omc/state/agent-replay-3d300b9e-3243-4e4d-b326-7ad6f1a078f2.jsonl\n\tmodified:   .omc/state/last-tool-error.json\n\tmodified:   .omc/state/subagent-...",
+  "timestamp": "2026-03-25T19:14:03.857Z",
+  "retry_count": 4
 }

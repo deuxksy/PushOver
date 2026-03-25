@@ -43,6 +43,18 @@
       "type": "file"
     },
     {
+      "path": "crates/worker/src/lib.rs",
+      "accessCount": 32,
+      "lastAccessed": 1774465805876,
+      "type": "file"
+    },
+    {
+      "path": "crates/worker/src/routes.rs",
+      "accessCount": 22,
+      "lastAccessed": 1774465760923,
+      "type": "file"
+    },
+    {
       "path": "crates/sdk/src/http_client.rs",
       "accessCount": 16,
       "lastAccessed": 1774463964116,
@@ -55,6 +67,18 @@
       "type": "file"
     },
     {
+      "path": "crates/worker/Cargo.toml",
+      "accessCount": 12,
+      "lastAccessed": 1774465169862,
+      "type": "file"
+    },
+    {
+      "path": "crates/worker/src/middleware.rs",
+      "accessCount": 12,
+      "lastAccessed": 1774466057173,
+      "type": "file"
+    },
+    {
       "path": "crates/sdk/tests/integration_test.rs",
       "accessCount": 11,
       "lastAccessed": 1774463971650,
@@ -62,15 +86,57 @@
     },
     {
       "path": "crates/sdk/src/lib.rs",
+      "accessCount": 10,
+      "lastAccessed": 1774465009784,
+      "type": "file"
+    },
+    {
+      "path": "crates/worker/src/types.rs",
+      "accessCount": 10,
+      "lastAccessed": 1774466037775,
+      "type": "file"
+    },
+    {
+      "path": "crates/worker/src/crypto.rs",
       "accessCount": 9,
-      "lastAccessed": 1774464191277,
+      "lastAccessed": 1774465480134,
+      "type": "file"
+    },
+    {
+      "path": "crates/cli/src/main.rs",
+      "accessCount": 7,
+      "lastAccessed": 1774466015784,
+      "type": "file"
+    },
+    {
+      "path": "Cargo.toml",
+      "accessCount": 6,
+      "lastAccessed": 1774465084704,
+      "type": "file"
+    },
+    {
+      "path": "crates/worker/src/utils.rs",
+      "accessCount": 6,
+      "lastAccessed": 1774465392679,
+      "type": "file"
+    },
+    {
+      "path": "crates/cli/src/commands/history.rs",
+      "accessCount": 5,
+      "lastAccessed": 1774464725917,
       "type": "file"
     },
     {
       "path": "",
-      "accessCount": 4,
-      "lastAccessed": 1774460641228,
+      "accessCount": 5,
+      "lastAccessed": 1774464936999,
       "type": "directory"
+    },
+    {
+      "path": "crates/sdk/src/models.rs",
+      "accessCount": 4,
+      "lastAccessed": 1774465089785,
+      "type": "file"
     },
     {
       "path": "crates/sdk/src/error.rs",
@@ -79,21 +145,39 @@
       "type": "file"
     },
     {
+      "path": "crates/worker/wrangler.toml",
+      "accessCount": 3,
+      "lastAccessed": 1774464951580,
+      "type": "file"
+    },
+    {
+      "path": "crates/worker/package.json",
+      "accessCount": 3,
+      "lastAccessed": 1774464951597,
+      "type": "file"
+    },
+    {
+      "path": "crates/worker/src",
+      "accessCount": 3,
+      "lastAccessed": 1774465549272,
+      "type": "directory"
+    },
+    {
+      "path": "crates/cli/src/commands/mod.rs",
+      "accessCount": 3,
+      "lastAccessed": 1774465954227,
+      "type": "file"
+    },
+    {
+      "path": "dashboard/src/app/page.tsx",
+      "accessCount": 3,
+      "lastAccessed": 1774466467009,
+      "type": "file"
+    },
+    {
       "path": ".claude/settings.local.json",
       "accessCount": 2,
       "lastAccessed": 1774463223587,
-      "type": "file"
-    },
-    {
-      "path": "crates/sdk/src/models.rs",
-      "accessCount": 2,
-      "lastAccessed": 1774463712291,
-      "type": "file"
-    },
-    {
-      "path": "Cargo.toml",
-      "accessCount": 2,
-      "lastAccessed": 1774463881048,
       "type": "file"
     },
     {
@@ -106,6 +190,54 @@
       "path": "crates/sdk/src/webhook.rs",
       "accessCount": 2,
       "lastAccessed": 1774464127012,
+      "type": "file"
+    },
+    {
+      "path": "crates/worker/src/recovery.rs",
+      "accessCount": 1,
+      "lastAccessed": 1774465794396,
+      "type": "file"
+    },
+    {
+      "path": "migrations/0001_init.sql",
+      "accessCount": 1,
+      "lastAccessed": 1774465831272,
+      "type": "file"
+    },
+    {
+      "path": "README.md",
+      "accessCount": 1,
+      "lastAccessed": 1774465897986,
+      "type": "file"
+    },
+    {
+      "path": "CONTRIBUTING.md",
+      "accessCount": 1,
+      "lastAccessed": 1774465904373,
+      "type": "file"
+    },
+    {
+      "path": "crates/cli/src/config.rs",
+      "accessCount": 1,
+      "lastAccessed": 1774465980277,
+      "type": "file"
+    },
+    {
+      "path": "crates/cli/src/commands/send.rs",
+      "accessCount": 1,
+      "lastAccessed": 1774466002808,
+      "type": "file"
+    },
+    {
+      "path": "dashboard/src/app/settings/page.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1774466424102,
+      "type": "file"
+    },
+    {
+      "path": "dashboard/src/app/history/page.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1774466445511,
       "type": "file"
     }
   ],
