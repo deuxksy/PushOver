@@ -25,6 +25,24 @@ mise use -g nodejs
 npm install -g pnpm
 ```
 
+### 환경변수 설정
+
+```bash
+# .env 복사 및 설정
+cp .env.example .env
+# .env 파일에 필요한 토큰 값 입력 (아래 참고)
+```
+
+**필수 토큰**:
+- `CLOUDFLARE_API_TOKEN`: Cloudflare API 토큰 (Workers, D1, KV 권한)
+- `CLOUDFLARE_ACCOUNT_ID`: Cloudflare 계정 ID
+- `PUSHOVER_USER_KEY`: PushOver 사용자 키
+- `PUSHOVER_API_TOKEN`: PushOver API 토큰
+
+**토큰 발급**:
+- Cloudflare: https://dash.cloudflare.com/profile/api-tokens
+- PushOver: https://pushover.net (Settings → Applications)
+
 ### 설치
 
 ```bash
