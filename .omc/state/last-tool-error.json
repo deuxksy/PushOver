@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"git show 2b5aeb96e1c0b8b52aebcf1af28127129bc114ed:Cargo.toml && echo \\\"---SEPARATOR---\\\" && git show 2b5aeb96e1c0b8b52aebcf1af28127129bc114ed:crates/sdk/Cargo.toml && echo \\\"---SEPARATOR--...",
-  "error": "Exit code 128\nfatal: path 'Cargo.toml' exists on disk, but not in '2b5aeb96e1c0b8b52aebcf1af28127129bc114ed'",
-  "timestamp": "2026-03-25T18:26:36.725Z",
-  "retry_count": 1
+  "tool_input_preview": "{\"command\":\"rustfmt --check crates/sdk/src/http_client.rs crates/sdk/tests/integration_test.rs\",\"description\":\"Check formatting of specific files only\"}",
+  "error": "Exit code 1\nerror[E0670]: `async fn` is not permitted in Rust 2015\n  --> /Users/crong/git/PushOver/crates/sdk/src/http_client.rs:22:9\n   |\n22 |     pub async fn send(&self, msg: Message) -> Result<Response, PushOverError> {\n   |         ^^^^^ to use `async fn`, switch to Rust 2018 or later\n   |\n   = help: pass `--edition 2024` to `rustc`\n   = note: for more on editions, read https://doc.rust-lang.org/edition-guide\n\nerror[E0670]: `async fn` is not permitted in Rust 2015\n --> /Users/crong/git/Push...",
+  "timestamp": "2026-03-25T18:38:11.543Z",
+  "retry_count": 12
 }
