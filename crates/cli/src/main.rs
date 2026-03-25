@@ -59,6 +59,21 @@ enum Commands {
         #[arg(long)]
         html: bool,
     },
+
+    /// View message history
+    History {
+        /// Maximum number of messages to show
+        #[arg(short, long)]
+        limit: Option<usize>,
+
+        /// User key (overrides config)
+        #[arg(short = 'u', long)]
+        user: Option<String>,
+
+        /// API token (overrides config)
+        #[arg(short = 't', long)]
+        token: Option<String>,
+    },
 }
 
 #[tokio::main]
@@ -68,6 +83,9 @@ async fn main() -> Result<()> {
     match cli.command {
         Commands::Send { message, title, user, token, device, priority, url, url_title, sound, timestamp, html } => {
             commands::send::execute(message, title, user, token, device, priority, url, url_title, sound, timestamp, html).await?;
+        }
+        Commands::History { limit, user, token } => {
+            commands::history::execute(limit, user, token).await?;
         }
     }
 
