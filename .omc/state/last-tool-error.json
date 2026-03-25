@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"git show 2b5aeb96e1c0b8b52aebcf1af28127129bc114ed:Cargo.toml && echo \\\"---SEPARATOR---\\\" && git show 2b5aeb96e1c0b8b52aebcf1af28127129bc114ed:crates/sdk/Cargo.toml && echo \\\"---SEPARATOR--...",
+  "error": "Exit code 128\nfatal: path 'Cargo.toml' exists on disk, but not in '2b5aeb96e1c0b8b52aebcf1af28127129bc114ed'",
+  "timestamp": "2026-03-25T18:26:36.725Z",
+  "retry_count": 1
+}

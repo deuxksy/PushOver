@@ -1,0 +1,17 @@
+[package]
+name = "pushover-cli"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "pushover"
+path = "src/main.rs"
+
+[dependencies]
+pushover-sdk = { path = "../sdk" }
+clap = { version = "4", features = ["derive"] }
+tokio.workspace = true
+anyhow = "1"
+dirs = "5"
+serde.workspace = true
+toml = "0.8"
