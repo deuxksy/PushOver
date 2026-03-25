@@ -2,6 +2,7 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum PushOverError {
+    #[cfg(feature = "reqwest")]
     #[error("API request failed: {0}")]
     RequestFailed(#[from] reqwest::Error),
 
