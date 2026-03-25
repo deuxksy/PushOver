@@ -1,11 +1,17 @@
-name = "pushover-api"
-main = "src/lib.rs"
+name = "pushover-worker"
+main = "build/worker/shim.mjs"
 compatibility_date = "2024-01-01"
 
+# D1 Database bindings
 [[d1_databases]]
 binding = "DB"
-database_name = "pushover"
+database_name = "pushover-db"
 database_id = "local"
 
+# Environment variables
 [vars]
-ENVIRONMENT = "development"
+API_URL = "https://api.pushover.net"
+
+# Scheduled events (cron triggers)
+[triggers]
+crons = ["*/5 * * * *"]  # Run every 5 minutes for recovery worker
