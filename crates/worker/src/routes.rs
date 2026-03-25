@@ -1,5 +1,7 @@
 use worker::*;
+use crate::types::{ErrorResponse, WebhookMessage};
 use crate::middleware::require_auth;
+use crate::crypto::verify_signature;
 
 pub async fn send_message(
     mut req: Request,
@@ -46,5 +48,43 @@ pub async fn get_status(
         "status": "delivered",
         "acknowledged": true,
         "delivered_at": "2024-01-01T00:00:00Z"
+    }))?)
+}
+
+pub async fn receive_webhook(
+    mut req: Request,
+    ctx: RouteContext<()>,
+) -> Result<Response> {
+    // Get signature from headers
+    let signature = req.headers()
+        .get("X-Pushover-Signature")
+        .ok_or_else(|| Error::from("Missing signature header"))?;
+
+    // Get raw body as string
+    let body = req.text().await?;
+
+    // Get webhook secret from env (placeholder)
+    let secret = ctx.var("WEBHOOK_SECRET")
+        .map_err(|_| Error::from("WEBHOOK_SECRET not configured"))?
+        .to_string();
+
+    // Verify signature
+    let is_valid = verify_signature(&body, &signature, &secret)?;
+
+    if !is_valid {
+        return Ok(Response::from_json(&ErrorResponse::unauthorized(
+            "Invalid signature"
+        ))?);
+    }
+
+    // Parse webhook payload
+    let _payload: WebhookMessage = serde_json::from_str(&body)
+        .map_err(|_| Error::from("Invalid JSON payload"))?;
+
+    // TODO: Store in D1 database
+
+    Ok(Response::from_json(&serde_json::json!({
+        "status": "success",
+        "message": "Webhook received"
     }))?)
 }
