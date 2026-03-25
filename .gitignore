@@ -1,0 +1,26 @@
+# Rust
+/target/
+**/*.rs.bk
+Cargo.lock
+
+# Node
+node_modules/
+dist/
+.wrangler/
+
+# Environment
+.env
+.env.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+
+# OpenTofu
+*.tfstate
+*.tfstate.*
+.terraform/
