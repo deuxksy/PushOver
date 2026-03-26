@@ -138,6 +138,19 @@ flowchart LR
 
 ---
 
+## ☁️ Cloudflare 서비스
+
+| 서비스 | 용도 | 비고 |
+|--------|------|------|
+| **Workers** | Serverless API 서버 | Rust/WASM으로 빌드 |
+| **D1** | SQLite 기반 DB | 메시지, 웹훅 이력 저장 |
+| **KV** | Key-Value 스토리지 | 실패 메시지 백업 |
+| **Queues** | 메시지 큐 | 비동기 메시지 처리 |
+| **Pages** | 정적 호스팅 | Dashboard 배포용 |
+| **Cron Triggers** | 스케줄러 | Recovery Worker (5분마다) |
+
+---
+
 ## 📦 프로젝트 구조
 
 ```
