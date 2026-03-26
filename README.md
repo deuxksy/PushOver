@@ -2,60 +2,6 @@
 
 PushOver API를 위한 Rust 기반 Serverless 플랫폼입니다. Cloudflare Workers, D1, KV, Queues를 활용한 확장 가능한 알림 시스템입니다.
 
-## 📦 프로젝트 구조
-
-```
-pushover/
-├── crates/
-│   ├── sdk/                    # Rust SDK
-│   │   ├── src/
-│   │   │   ├── lib.rs           # 공개 API
-│   │   │   ├── models.rs        # 데이터 모델
-│   │   │   ├── error.rs         # 에러 타입
-│   │   │   ├── http_client.rs  # HTTP 클라이언트
-│   │   │   └── webhook.rs       # 웹훅 검증
-│   │   └── tests/
-│   │
-│   ├── cli/                    # CLI 도구
-│   │   ├── src/
-│   │   │   ├── main.rs          # 진입점
-│   │   │   ├── commands/
-│   │   │   │   ├── send.rs      # 메시지 전송
-│   │   │   │   └── history.rs   # 이력 조회
-│   │   │   └── config.rs        # 설정 관리
-│   │
-│   └── worker/                 # Cloudflare Worker
-│       ├── src/
-│       │   ├── lib.rs           # 진입점
-│       │   ├── routes/          # API 라우트
-│       │   ├── middleware/      # CORS, 인증
-│       │   ├── types/           # 요청/응답 타입
-│       │   ├── recovery/        # 실패 메시지 복구
-│       │   └── utils/           # 유틸리티
-│       └── wrangler.toml
-│
-├── dashboard/                  # Next.js 웹 UI
-│   ├── src/
-│   │   ├── app/
-│   │   │   ├── page.tsx         # 메인 페이지
-│   │   │   ├── history/         # 이력 페이지
-│   │   │   └── settings/        # 설정 페이지
-│   │   └── lib/
-│   │       └── api.ts           # API 클라이언트
-│   └── package.json
-│
-├── infrastructure/              # OpenTofu (Terraform)
-│   ├── main.tf
-│   ├── variables.tf
-│   └── outputs.tf
-│
-├── migrations/                # D1 마이그레이션
-│
-└── docs/                      # 문서
-    └── superpowers/specs/
-        └── 2026-03-26-pushover-serverless-design.md
-```
-
 ---
 
 ## 🏗️ 아키텍처
@@ -175,6 +121,77 @@ sequenceDiagram
     W->>D1: 처리 결과 업데이트
 ```
 
+### 웹훅 서명 검증
+
+```mermaid
+flowchart LR
+    A[웹훅 요청] --> B{X-Webhook-Signature<br/>헤더 존재?}
+    B -->|No| C[401 Unauthorized]
+    B -->|Yes| D[HMAC-SHA256<br/>서명 계산]
+    D --> E{Timing-safe<br/>비교}
+    E -->|불일치| C
+    E -->|일치| F[요청 처리]
+
+    style C fill:#ff6b6b
+    style F fill:#51cf66
+```
+
+---
+
+## 📦 프로젝트 구조
+
+```
+pushover/
+├── crates/
+│   ├── sdk/                    # Rust SDK
+│   │   ├── src/
+│   │   │   ├── lib.rs           # 공개 API
+│   │   │   ├── models.rs        # 데이터 모델
+│   │   │   ├── error.rs         # 에러 타입
+│   │   │   ├── http_client.rs  # HTTP 클라이언트
+│   │   │   └── webhook.rs       # 웹훅 검증
+│   │   └── tests/
+│   │
+│   ├── cli/                    # CLI 도구
+│   │   ├── src/
+│   │   │   ├── main.rs          # 진입점
+│   │   │   ├── commands/
+│   │   │   │   ├── send.rs      # 메시지 전송
+│   │   │   │   └── history.rs   # 이력 조회
+│   │   │   └── config.rs        # 설정 관리
+│   │
+│   └── worker/                 # Cloudflare Worker
+│       ├── src/
+│       │   ├── lib.rs           # 진입점
+│       │   ├── routes/          # API 라우트
+│       │   ├── middleware/      # CORS, 인증
+│       │   ├── types/           # 요청/응답 타입
+│       │   ├── recovery/        # 실패 메시지 복구
+│       │   └── utils/           # 유틸리티
+│       └── wrangler.toml
+│
+├── dashboard/                  # Next.js 웹 UI
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── page.tsx         # 메인 페이지
+│   │   │   ├── history/         # 이력 페이지
+│   │   │   └── settings/        # 설정 페이지
+│   │   └── lib/
+│   │       └── api.ts           # API 클라이언트
+│   └── package.json
+│
+├── infrastructure/              # OpenTofu (Terraform)
+│   ├── main.tf
+│   ├── variables.tf
+│   └── outputs.tf
+│
+├── migrations/                # D1 마이그레이션
+│
+└── docs/                      # 문서
+    └── superpowers/specs/
+        └── 2026-03-26-pushover-serverless-design.md
+```
+
 ---
 
 ## 🚀 빠른 시작
@@ -257,7 +274,7 @@ let response = client.send(msg).await?;
 
 ```bash
 # 메시지 전송
-pushover send "Hello World" -t "제목" -p 2
+pushover send "Hello World" --title "Test"
 pushover send "긴급" --device iphone --sound siren
 
 # 이력 조회
@@ -286,8 +303,8 @@ pushover config set token <TOKEN>
 **기능**:
 - ✅ Bearer 토큰 인증
 - ✅ CORS 지원
-- ✅ 메시지 큐잉 (Cloudflare Queues)
-- ✅ 실패 메시지 복구 (KV + Cron)
+- ✅ 메시지 큐잉 처리 (Cloudflare Queues)
+- ✅ 실패 메시지 복구 (KV 백업 + Cron)
 - ✅ 웹훅 시그니처 검증 (Timing-safe)
 
 ### Next.js Dashboard (`dashboard/`)
@@ -354,21 +371,6 @@ CREATE TABLE webhook_events (
 
 ## 🔒 보안
 
-### 웹훅 서명 검증
-
-```mermaid
-flowchart LR
-    A[웹훅 요청] --> B{X-Webhook-Signature<br/>헤더 존재?}
-    B -->|No| C[401 Unauthorized]
-    B -->|Yes| D[HMAC-SHA256<br/>서명 계산]
-    D --> E{Timing-safe<br/>비교}
-    E -->|불일치| C
-    E -->|일치| F[요청 처리]
-
-    style C fill:#ff6b6b
-    style F fill:#51cf66
-```
-
 **보안 기능**:
 - **Timing-safe comparison**: 서명 검증에 상수시간 비교 사용 (Timing Attack 방지)
 - **HMAC-SHA256**: 웹훅 서명 검증
@@ -385,8 +387,7 @@ flowchart LR
 | Rust CLI | ✅ 완료 | send, history 명령어 |
 | Rust Worker | ✅ 완료 | API 서버, 큐 처리, 복구 |
 | Dashboard | ✅ 완료 | Next.js 16 UI |
-| Infrastructure | ⚠️ 진행중 | OpenTofu 구조만 존재 |
-| E2E Tests | ⚠️ 진행중 | Playwright 구조만 존재 |
+| Infrastructure | ⚠️ 진행중 | OpenTofu 구현 필요 |
 
 ---
 
