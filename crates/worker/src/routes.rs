@@ -1,12 +1,33 @@
 use worker::*;
 use crate::types::{ErrorResponse, WebhookMessage};
 use crate::middleware::require_auth;
-use crate::crypto::{verify_signature, generate_signature};
+use crate::crypto::verify_signature;
+
+pub async fn root(
+    _req: Request,
+    _ctx: RouteContext<()>,
+) -> worker::Result<Response> {
+    Response::ok("PushOver API")
+}
+
+pub async fn health(
+    _req: Request,
+    _ctx: RouteContext<()>,
+) -> worker::Result<Response> {
+    Response::ok("OK")
+}
+
+pub async fn not_found(
+    _req: Request,
+    _ctx: RouteContext<()>,
+) -> worker::Result<Response> {
+    Ok(Response::from_json(&ErrorResponse::not_found("Endpoint not found"))?)
+}
 
 pub async fn send_message(
     mut req: Request,
     ctx: RouteContext<()>,
-) -> Result<Response> {
+) -> worker::Result<Response> {
     // Authenticate request
     let auth_resp = require_auth(&req, &ctx).await?;
     if auth_resp.status_code() != 200 {
@@ -34,7 +55,7 @@ pub async fn send_message(
 pub async fn get_status(
     req: Request,
     ctx: RouteContext<()>,
-) -> Result<Response> {
+) -> worker::Result<Response> {
     // Authenticate request
     let auth_resp = require_auth(&req, &ctx).await?;
     if auth_resp.status_code() != 200 {
@@ -54,11 +75,14 @@ pub async fn get_status(
 pub async fn receive_webhook(
     mut req: Request,
     ctx: RouteContext<()>,
-) -> Result<Response> {
+) -> worker::Result<Response> {
     // Get signature from headers
-    let signature = req.headers()
-        .get("X-Pushover-Signature")
+    let headers = req.headers();
+    let signature = headers.get("X-Pushover-Signature")?
         .ok_or_else(|| Error::from("Missing signature header"))?;
+
+    // Convert String to &str
+    let signature_str = signature.as_str();
 
     // Get raw body as string
     let body = req.text().await?;
@@ -69,7 +93,7 @@ pub async fn receive_webhook(
         .to_string();
 
     // Verify signature
-    let is_valid = verify_signature(&body, &signature, &secret)?;
+    let is_valid = verify_signature(&body, signature_str, &secret)?;
 
     if !is_valid {
         return Ok(Response::from_json(&ErrorResponse::unauthorized(
@@ -92,7 +116,7 @@ pub async fn receive_webhook(
 pub async fn register_webhook(
     mut req: Request,
     ctx: RouteContext<()>,
-) -> Result<Response> {
+) -> worker::Result<Response> {
     let auth_resp = require_auth(&req, &ctx).await?;
     if auth_resp.status_code() != 200 {
         return Ok(auth_resp);
@@ -121,7 +145,7 @@ pub async fn register_webhook(
 pub async fn get_webhooks(
     req: Request,
     ctx: RouteContext<()>,
-) -> Result<Response> {
+) -> worker::Result<Response> {
     let auth_resp = require_auth(&req, &ctx).await?;
     if auth_resp.status_code() != 200 {
         return Ok(auth_resp);
@@ -138,7 +162,7 @@ pub async fn get_webhooks(
 pub async fn delete_webhook(
     req: Request,
     ctx: RouteContext<()>,
-) -> Result<Response> {
+) -> worker::Result<Response> {
     let auth_resp = require_auth(&req, &ctx).await?;
     if auth_resp.status_code() != 200 {
         return Ok(auth_resp);

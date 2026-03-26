@@ -2,12 +2,13 @@
   "name": "pushover-worker",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "wrangler dev",
-    "deploy": "wrangler publish",
-    "build": "wasm-pack build --dev --target web"
+    "deploy": "wrangler deploy",
+    "build": "wasm-pack build --dev --target bundler"
   },
   "devDependencies": {
-    "wrangler": "^3.0.0"
+    "wrangler": "^4.77.0"
   }
 }

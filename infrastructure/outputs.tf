@@ -1,7 +1,8 @@
-output "worker_url" {
-  description = "Worker URL"
-  value       = "https://${cloudflare_worker_script.pushover.name}.workers.dev"
-}
+# Note: Worker URL will be available after wrangler deployment
+# output "worker_url" {
+#   description = "Worker URL"
+#   value       = "https://${var.worker_name}.workers.dev"
+# }
 
 output "d1_database_id" {
   description = "D1 Database ID"
