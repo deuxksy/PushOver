@@ -5,7 +5,7 @@ const MAX_RETRY_ATTEMPTS: u32 = 3;
 pub async fn handle_failed_messages(
     _event: ScheduledEvent,
     env: Env,
-    _ctx: worker::Context,
+    _ctx: ScheduleContext,
 ) -> Result<Response> {
     // TODO: Get failed messages from D1 where retry_count < MAX_RETRY_ATTEMPTS
     // TODO: For each failed message:
@@ -13,7 +13,7 @@ pub async fn handle_failed_messages(
     //   - If success: mark as delivered in D1
     //   - If failure: increment retry_count, update last_retry_at
 
-    Ok(Response::ok("Recovery worker executed"))
+    Response::ok("Recovery worker executed")
 }
 
 pub async fn retry_message(

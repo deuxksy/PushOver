@@ -24,3 +24,17 @@ dist/
 *.tfstate
 *.tfstate.*
 .terraform/
+*.tfvars
+*.tfvars.json
+
+# OMC (Oh My Claude Code)
+.omc/
+*/.omc/
+*/*/.omc/
+
+# Playwright MCP
+.playwright-mcp/
+
+# Lock files (optional - uncomment if needed)
+# pnpm-lock.yaml
+# Cargo.lock
