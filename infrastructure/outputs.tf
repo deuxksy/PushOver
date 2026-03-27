@@ -1,15 +1,38 @@
-# Note: Worker URL will be available after wrangler deployment
-# output "worker_url" {
-#   description = "Worker URL"
-#   value       = "https://${var.worker_name}.workers.dev"
-# }
+# ============================================
+# Outputs
+# ============================================
 
 output "d1_database_id" {
   description = "D1 Database ID"
   value       = cloudflare_d1_database.pushover.id
 }
 
+output "d1_database_uuid" {
+  description = "D1 Database UUID"
+  value       = cloudflare_d1_database.pushover.id
+}
+
 output "kv_namespace_id" {
   description = "KV Namespace ID"
   value       = cloudflare_workers_kv_namespace.cache.id
+}
+
+output "account_id" {
+  description = "Cloudflare Account ID"
+  value       = var.account_id
+}
+
+output "r2_bucket_name" {
+  description = "R2 Bucket Name for Terraform State"
+  value       = cloudflare_r2_bucket.terraform_state.name
+}
+
+output "cron_trigger_schedules" {
+  description = "Cron Trigger Schedules"
+  value       = cloudflare_workers_cron_trigger.recovery.schedules
+}
+
+output "worker_script_name" {
+  description = "Worker Script Name"
+  value       = var.worker_name
 }
