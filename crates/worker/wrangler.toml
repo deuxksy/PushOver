@@ -14,9 +14,10 @@ database_id = "b8714aa2-58ce-40c7-873f-b8b94e2d53c3"
 API_URL = "https://api.pushover.net"
 WEBHOOK_SECRET = "C4VZclx+sZDWEBW9Qq0nvROE3asqkMLWOzP8CiWlF5s="
 
-# Scheduled events (cron triggers)
-[triggers]
-crons = ["*/5 * * * *"]
+# Cron Triggers are# Cron Triggers are managed by Terraform
+# See: infrastructure/main.tf - cloudflare_workers_cron_trigger.recovery
+# Schedules: */5 * * * * (every 5 minutes)# To modify schedule,# Update infrastructure/main.tf and# cloudflare_workers_cron_trigger.recovery
+# schedules = [{ cron = "*/5 * * * *" }] }]
 
 # Build configuration
 [build]
