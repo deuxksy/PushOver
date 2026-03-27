@@ -133,6 +133,14 @@ interface Settings {
 
 ```typescript
 // src/app/settings/hooks/useSettings.ts
+
+// 기본값 상수
+const DEFAULT_VALUES = {
+  pushover: { apiToken: '', userKey: '' },
+  worker: { url: 'https://pushover-worker.cromksy.workers.dev' },
+  notification: { sound: 'pushover', device: 'all', priority: 0 }
+};
+
 interface UseSettingsReturn {
   settings: Settings | null;
   isLoading: boolean;
@@ -176,13 +184,59 @@ function useSettings(): UseSettingsReturn {
     }
   };
 
-  // 탭별 초기화
-  const resetTab = (tab: string) => {
-    const defaults = { /* 위 기본값 테이블 참조 */ };
-    saveSettings({ [tab]: defaults[tab] });
+  // 탭별 초기화 (확인 다이얼로그는 컴포넌트에서 처리)
+  const resetTab = (tab: 'pushover' | 'worker' | 'notification') => {
+    saveSettings({ [tab]: DEFAULT_VALUES[tab] });
   };
 
   return { settings, isLoading, error, saveSettings, resetTab };
+}
+```
+
+### 로딩 상태 UI
+
+설정 로딩 중 스켈레톤 표시:
+
+```tsx
+if (isLoading) {
+  return (
+    <div className="animate-pulse space-y-4">
+      <div className="h-10 bg-zinc-800 rounded" />
+      <div className="h-10 bg-zinc-800 rounded" />
+      <div className="h-10 bg-zinc-800 rounded w-1/2" />
+    </div>
+  );
+}
+```
+
+### 입력값 검증
+
+| 필드 | 검증 규칙 | 에러 메시지 |
+|---|---|---|
+| API Token | 30자 이상, 영숫자 | 'API Token은 30자 이상의 영숫자여야 합니다' |
+| User Key | 30자 이상, 영숫자 | 'User Key는 30자 이상의 영숫자여야 합니다' |
+| Worker URL | 유효한 URL 형식 | '유효한 URL을 입력해주세요' |
+| Priority | -2 ~ 2 범위 | '우선순위는 -2에서 2 사이여야 합니다' |
+
+```typescript
+function validateSettings(settings: Partial<Settings>): string[] {
+  const errors: string[] = [];
+
+  if (settings.pushover?.apiToken && !/^[a-zA-Z0-9]{30,}$/.test(settings.pushover.apiToken)) {
+    errors.push('API Token 형식이 올바르지 않습니다');
+  }
+  if (settings.pushover?.userKey && !/^[a-zA-Z0-9]{30,}$/.test(settings.pushover.userKey)) {
+    errors.push('User Key 형식이 올바르지 않습니다');
+  }
+  if (settings.worker?.url) {
+    try {
+      new URL(settings.worker.url);
+    } catch {
+      errors.push('Worker URL 형식이 올바르지 않습니다');
+    }
+  }
+
+  return errors;
 }
 ```
 
