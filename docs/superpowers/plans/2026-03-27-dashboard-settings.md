@@ -681,9 +681,7 @@ git commit -m "feat: refactor settings page to 3-tab structure"
 
 ```typescript
 // dashboard/src/lib/api.ts
-import { Settings, loadSettings } from './settings';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8787';
+import { Settings, DEFAULT_VALUES, loadSettings } from './settings';
 
 export interface Message {
   id: string;
@@ -717,15 +715,15 @@ export class PushOverAPI {
 
   constructor() {
     const stored = loadSettings();
-    this.settings = stored || {
-      pushover: { apiToken: '', userKey: '' },
-      worker: { url: API_BASE },
-      notification: { sound: 'pushover', device: 'all', priority: 0 }
+    this.settings = stored ?? {
+      pushover: { ...DEFAULT_VALUES.pushover },
+      worker: { ...DEFAULT_VALUES.worker },
+      notification: { ...DEFAULT_VALUES.notification }
     };
   }
 
   private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
-    const workerUrl = this.settings.worker?.url || API_BASE;
+    const workerUrl = this.settings.worker?.url || DEFAULT_VALUES.worker.url;
 
     const response = await fetch(`${workerUrl}${endpoint}`, {
       ...options,
@@ -751,6 +749,11 @@ export class PushOverAPI {
   }
 
   async sendMessage(data: SendMessageRequest): Promise<SendMessageResponse> {
+    // 필수 설정 검증
+    if (!this.settings.pushover?.apiToken || !this.settings.pushover?.userKey) {
+      throw new Error('PushOver credentials not configured');
+    }
+
     // PushOver API는 token/user를 body에 포함
     return this.request('/api/v1/messages', {
       method: 'POST',
@@ -759,9 +762,9 @@ export class PushOverAPI {
         user: this.settings.pushover.userKey,
         message: data.message,
         title: data.title,
-        sound: data.sound || this.settings.notification.sound,
-        device: data.device || this.settings.notification.device,
-        priority: data.priority ?? this.settings.notification.priority,
+        sound: data.sound || this.settings.notification?.sound || DEFAULT_VALUES.notification.sound,
+        device: data.device || this.settings.notification?.device || DEFAULT_VALUES.notification.device,
+        priority: data.priority ?? this.settings.notification?.priority ?? DEFAULT_VALUES.notification.priority,
         url: data.url,
         url_title: data.url_title,
         html: data.html,
