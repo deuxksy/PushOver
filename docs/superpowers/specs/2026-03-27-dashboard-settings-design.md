@@ -62,8 +62,10 @@ src/app/settings/
 | 필드 | 타입 | 필수 | 옵션 |
 |---|---|---|---|
 | 사운드 | select | X | 23개 (pushover, bike, bugle, ...) |
-| 기기 | select | X | all / 동적 로드 |
+| 기기 | select | X | v1: 'all' 고정 |
 | 우선순위 | select | X | -2 ~ 2 |
+
+> **v1 제한사항**: 기기 선택은 'all'만 지원. 동적 기기 로드는 v2에서 PushOver API `/1/devices.json` 연동 후 구현 예정.
 
 #### 사운드 옵션 (23개)
 ```
@@ -91,25 +93,34 @@ persistent, echo, updown, vibrate, none
 ```typescript
 interface Settings {
   pushover: {
-    apiToken: string;
-    userKey: string;
+    apiToken: string;      // 필수
+    userKey: string;       // 필수
   };
   worker: {
-    url: string;
-    webhookSecret: string;
+    url: string;           // 필수
+    webhookSecret?: string; // 선택
   };
   notification: {
-    sound: string;
-    device: string;
-    priority: number;
+    sound?: string;        // 기본값: 'pushover'
+    device?: string;       // 기본값: 'all' (v1에서는 'all'만 지원)
+    priority?: number;     // 기본값: 0
   };
 }
 ```
 
+### 기본값
+| 필드 | 기본값 |
+|---|---|
+| notification.sound | `'pushover'` |
+| notification.device | `'all'` |
+| notification.priority | `0` |
+
 ### 저장 방식
 - 키: `pushover-settings`
-- 암호화: base64 인코딩 (간단한 난독화)
+- 인코딩: base64 인코딩 (난독화 목적, **암호화 아님**)
 - 검증: 저장 전 필수 필드 체크
+
+> ⚠️ **주의**: base64는 인코딩이며 실제 암호화가 아닙니다. 민감한 정보 보호를 위해서는 향후 AES 암호화 도입 필요.
 
 ---
 
@@ -119,29 +130,55 @@ interface Settings {
 
 ```typescript
 // src/lib/api.ts
-async function sendMessage(message: MessageInput) {
+interface MessageInput {
+  text: string;
+  title?: string;
+}
+
+async function sendMessage(message: MessageInput): Promise<Response> {
   const settings = loadSettings();
 
-  const response = await fetch(`${settings.worker.url}/api/v1/messages`, {
+  // 필수 설정 검증
+  if (!settings?.pushover?.apiToken || !settings?.pushover?.userKey) {
+    throw new Error('PushOver credentials not configured');
+  }
+
+  // Worker URL 기본값 설정
+  const workerUrl = settings.worker?.url || 'https://pushover-worker.cromksy.workers.dev';
+
+  const response = await fetch(`${workerUrl}/api/v1/messages`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${settings.pushover.apiToken}`,
+      // Webhook Secret이 있으면 추가 (선택)
+      ...(settings.worker?.webhookSecret && {
+        'X-Webhook-Secret': settings.worker.webhookSecret
+      }),
     },
     body: JSON.stringify({
+      // PushOver API 필수 필드
       token: settings.pushover.apiToken,
       user: settings.pushover.userKey,
       message: message.text,
+      // 선택 필드
       title: message.title,
-      sound: settings.notification.sound,
-      device: settings.notification.device,
-      priority: settings.notification.priority,
+      sound: settings.notification?.sound || 'pushover',
+      device: settings.notification?.device || 'all',
+      priority: settings.notification?.priority ?? 0,
     }),
   });
+
+  // 에러 처리
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: 'Unknown error' }));
+    throw new Error(error.message || `API request failed: ${response.status}`);
+  }
 
   return response.json();
 }
 ```
+
+> **참고**: PushOver API는 `Authorization` 헤더가 아닌 요청 본문에 `token`과 `user`를 포함합니다.
 
 ---
 
@@ -153,9 +190,15 @@ async function sendMessage(message: MessageInput) {
 - zinc 색상 팔레트
 
 ### 버튼
-- 저장: 파란색 (bg-blue-600)
-- 초기화: 회색 (bg-zinc-700)
-- 테스트: 초록색 (bg-green-600)
+- 저장: 파란색 (bg-blue-600) - 현재 탭 설정 저장
+- 초기화: 회색 (bg-zinc-700) - 기본값으로 복원 (확인 다이얼로그 표시)
+- 테스트: 초록색 (bg-green-600) - PushOver 탭에서만 표시
+
+### 초기화 버튼 동작
+1. 확인 다이얼로그: "설정을 기본값으로 초기화하시겠습니까?"
+2. 현재 탭 설정만 기본값으로 복원
+3. localStorage 업데이트
+4. 토스트 메시지: "설정이 초기화되었습니다"
 
 ### 피드백
 - 저장 성공: 토스트 메시지
