@@ -28,8 +28,7 @@ export function WorkerTab({ settings, onUpdate, onReset }: WorkerTabProps) {
   const handleReset = () => {
     if (showResetConfirm) {
       onReset();
-      setUrl(DEFAULT_VALUES.worker.url);
-      setWebhookSecret('');
+      // useEffect가 settings.worker 변경을 자동으로 반영함
       setShowResetConfirm(false);
     } else {
       setShowResetConfirm(true);
