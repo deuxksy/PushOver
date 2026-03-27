@@ -47,22 +47,31 @@ export function loadSettings(): Settings | null {
       return JSON.parse(atob(stored));
     }
   } catch (e) {
-    console.error('Settings load error:', e);
+    console.error('Settings load failed:', {
+      error: e instanceof Error ? e.message : String(e),
+      key: SETTINGS_STORAGE_KEY
+    });
   }
   return null;
 }
 
 export function saveSettings(settings: Settings): void {
-  localStorage.setItem(SETTINGS_STORAGE_KEY, btoa(JSON.stringify(settings)));
+  try {
+    localStorage.setItem(SETTINGS_STORAGE_KEY, btoa(JSON.stringify(settings)));
+  } catch (e) {
+    throw new Error(
+      `Settings save failed: ${e instanceof Error ? e.message : String(e)}`
+    );
+  }
 }
 
 export function validateSettings(settings: Partial<Settings>): string[] {
   const errors: string[] = [];
 
-  if (settings.pushover?.apiToken && !/^[a-zA-Z0-9]{30,}$/.test(settings.pushover.apiToken)) {
+  if (settings.pushover?.apiToken && !/^[a-zA-Z0-9]{30}$/.test(settings.pushover.apiToken)) {
     errors.push('API Token 형식이 올바르지 않습니다');
   }
-  if (settings.pushover?.userKey && !/^[a-zA-Z0-9]{30,}$/.test(settings.pushover.userKey)) {
+  if (settings.pushover?.userKey && !/^[a-zA-Z0-9]{30}$/.test(settings.pushover.userKey)) {
     errors.push('User Key 형식이 올바르지 않습니다');
   }
   if (settings.worker?.url) {
@@ -71,6 +80,14 @@ export function validateSettings(settings: Partial<Settings>): string[] {
     } catch {
       errors.push('Worker URL 형식이 올바르지 않습니다');
     }
+  }
+
+  if (settings.notification?.sound && !SOUND_OPTIONS.includes(settings.notification.sound as any)) {
+    errors.push('유효하지 않은 사운드입니다');
+  }
+
+  if (settings.notification?.priority !== undefined && (settings.notification.priority < -2 || settings.notification.priority > 2)) {
+    errors.push('우선순위는 -2에서 2 사이여야 합니다');
   }
 
   return errors;
