@@ -38,3 +38,4 @@ dist/
 # Lock files (optional - uncomment if needed)
 # pnpm-lock.yaml
 # Cargo.lock
+.worktrees/
