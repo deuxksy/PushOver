@@ -35,7 +35,10 @@ export function PushOverTab({ settings, onUpdate }: PushOverTabProps) {
     try {
       const response = await fetch(`${settings.worker.url}/api/v1/messages`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiToken}`,
+        },
         body: JSON.stringify({
           token: apiToken,
           user: userKey,
