@@ -861,7 +861,48 @@ git commit -m "feat: add settings warning banner to homepage"
 
 ## Task 9: 통합 테스트
 
-- [ ] **Step 1: 개발 서버 실행 및 기능 테스트**
+- [ ] **Step 1: 개발 서버 실행**
+
+```bash
+cd dashboard && pnpm dev
+```
+
+- [ ] **Step 2: Settings 페이지 접근 및 탭 전환 테스트**
+
+브라우저에서 http://localhost:3000/settings 접속
+- PushOver, Worker, 알림 탭 클릭 시 정상 전환 확인
+- 각 탭의 입력 필드 정상 표시 확인
+
+- [ ] **Step 3: localStorage 저장 테스트**
+
+1. PushOver 탭에서 API Token, User Key 입력 후 저장
+2. 브라우저 개발자 도구 → Application → Local Storage 확인
+3. `pushover-settings` 키에 base64 인코딩된 값 존재 확인
+
+- [ ] **Step 4: PushOver 테스트 알림 발송**
+
+1. PushOver 탭에서 테스트 버튼 클릭
+2. PushOver 앱에서 알림 수신 확인
+3. 실패 시 에러 메시지 정상 표시 확인
+
+- [ ] **Step 5: 홈페이지 배너 테스트**
+
+1. localStorage 삭제 후 홈페이지 접속
+2. "PushOver 설정이 필요합니다" 배너 표시 확인
+3. "설정하기" 버튼 클릭 시 /settings 이동 확인
+
+- [ ] **Step 6: 초기화 기능 테스트**
+
+1. Worker/알림 탭에서 값 변경 후 저장
+2. 초기화 버튼 클릭 → 확인 다이얼로그 → 확인
+3. 기본값으로 복원 확인
+
+- [ ] **Step 7: 커밋**
+
+```bash
+git add -A
+git commit -m "feat: complete Dashboard Settings implementation"
+```
 
 ---
 
