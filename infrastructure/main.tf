@@ -37,6 +37,32 @@ resource "cloudflare_workers_kv_namespace" "cache" {
 }
 
 # ============================================
+# R2 Bucket (Message Images)
+# ============================================
+resource "cloudflare_r2_bucket" "pushover_images" {
+  account_id = var.account_id
+  name       = "pushover-images"
+  location   = "APAC"
+}
+
+# ============================================
+# R2 Bucket (D1 Backup Snapshots)
+# ============================================
+resource "cloudflare_r2_bucket" "pushover_backups" {
+  account_id = var.account_id
+  name       = "pushover-backups"
+  location   = "APAC"
+}
+
+# ============================================
+# Queue (Message Processing)
+# ============================================
+resource "cloudflare_queue" "messages" {
+  account_id = var.account_id
+  name       = "pushover-messages"
+}
+
+# ============================================
 # Worker Route (optional - for custom domain)
 # ============================================
 # Uncomment after deploying worker with wrangler
