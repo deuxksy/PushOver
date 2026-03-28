@@ -322,6 +322,132 @@ pushover config set token <TOKEN>
 - ✅ 실패 메시지 복구 (KV 백업 + Cron)
 - ✅ 웹훅 시그니처 검증 (Timing-safe)
 
+### cURL로 Worker API 테스트
+
+Worker URL: `https://pushover-worker.cromksy.workers.dev`
+
+```bash
+# 환경변수 설정
+WORKER_URL="https://pushover-worker.cromksy.workers.dev"
+API_TOKEN="<your-api-token>"
+PUSHOVER_USER_KEY="<your-pushover-user-key>"
+```
+
+```bash
+# 헬스체크
+curl -s "$WORKER_URL/health"
+
+# 메시지 전송
+curl -s -X POST "$WORKER_URL/api/v1/messages" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $API_TOKEN" \
+  -d '{
+    "user": "'"$PUSHOVER_USER_KEY"'",
+    "message": "Hello from PushOver Worker!",
+    "title": "테스트 알림",
+    "priority": 0,
+    "sound": "pushover"
+  }'
+
+# 응답 예시
+# {"status":"success","request":"xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx","receipt":"xxxxxxxxxxxxxxxxxxxxxxxx"}
+
+# 우선순위 긴급 메시지 (priority=2, retry/expire 필수)
+curl -s -X POST "$WORKER_URL/api/v1/messages" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $API_TOKEN" \
+  -d '{
+    "user": "'"$PUSHOVER_USER_KEY"'",
+    "message": "긴급 알림!",
+    "title": "URGENT",
+    "priority": 2,
+    "retry": 60,
+    "expire": 3600,
+    "sound": "siren"
+  }'
+
+# 메시지 목록 조회 (기본 50개)
+curl -s "$WORKER_URL/api/v1/messages" \
+  -H "Authorization: Bearer $API_TOKEN"
+
+# 메시지 목록 조회 (개수 제한)
+curl -s "$WORKER_URL/api/v1/messages?limit=10" \
+  -H "Authorization: Bearer $API_TOKEN"
+
+# 메시지 수신 상태 조회
+curl -s "$WORKER_URL/api/v1/messages/<receipt>/status" \
+  -H "Authorization: Bearer $API_TOKEN"
+
+# 응답 예시
+# {"status":"sent","receipt":"xxx","acknowledged":false,"delivered_at":null,"acknowledged_at":null,"created_at":"2026-03-28T12:00:00Z"}
+
+# Webhook 등록
+curl -s -X POST "$WORKER_URL/api/v1/webhooks/register" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $API_TOKEN" \
+  -d '{
+    "url": "https://example.com/webhook",
+    "events": "delivered,acknowledged,expired"
+  }'
+
+# Webhook 목록 조회
+curl -s "$WORKER_URL/api/v1/webhooks" \
+  -H "Authorization: Bearer $API_TOKEN"
+
+# Webhook 삭제
+curl -s -X DELETE "$WORKER_URL/api/v1/webhooks/<webhook-id>" \
+  -H "Authorization: Bearer $API_TOKEN"
+```
+
+### Dashboard E2E 테스트 (Playwright)
+
+```bash
+cd dashboard
+
+# Playwright 브라우저 설치 (최초 1회)
+npx playwright install chromium
+
+# Dashboard dev 서버 실행 (별도 터미널)
+pnpm dev
+
+# E2E 테스트 실행
+npx playwright test
+
+# UI 모드로 실행 (디버깅)
+npx playwright test --ui
+
+# 특정 테스트만 실행
+npx playwright test -g "메시지 전송"
+
+# 브라우저 화면 보면서 실행
+npx playwright test --headed
+```
+
+**테스트 케이스** (`tests/e2e/basic.spec.ts`):
+
+| 테스트 | 설명 |
+|--------|------|
+| 메인 페이지 로드 | h1 타이틀, "메시지 보내기" 버튼 표시 확인 |
+| 메시지 전송 모달 열기 | 모달 오픈 → 제목/메시지 입력 필드 표시 확인 |
+| 메시지 전송 | 메시지 입력 → 전송 클릭 → 로딩 완료 확인 |
+| History 페이지 이동 | 네비게이션 → `/history` URL + 타이틀 확인 |
+| API 키 설정 | `/settings` → API Key 입력 → 저장 클릭 |
+
+```bash
+# 실행 결과 예시
+$ npx playwright test
+
+Running 5 tests using 1 worker
+
+  ✓ basic.spec.ts:4:3 › PushOver Dashboard › 메인 페이지 로드 (1.2s)
+  ✓ basic.spec.ts:11:3 › PushOver Dashboard › 메시지 전송 모달 열기 (0.8s)
+  ✓ basic.spec.ts:21:3 › PushOver Dashboard › 메시지 전송 (2.1s)
+  ✓ basic.spec.ts:32:3 › PushOver Dashboard › History 페이지 이동 (1.5s)
+  ✓ basic.spec.ts:42:3 › Settings › API 키 설정 (1.0s)
+
+  5 passed (6.6s)
+```
+
 ### Next.js Dashboard (`dashboard/`)
 
 **페이지**:
@@ -335,7 +461,6 @@ pushover config set token <TOKEN>
 - Next.js 16 (App Router)
 - React 19
 - Tailwind CSS 4
-- TanStack Query
 
 ---
 
