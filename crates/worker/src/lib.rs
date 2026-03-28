@@ -6,11 +6,16 @@ mod recovery;
 mod utils;
 mod pushover;
 mod db;
+mod kv;
+mod queue;
+mod r2;
 
 use worker::*;
 use middleware::{with_cors, handle_options};
 use routes::{root, health, not_found, send_message, get_messages, get_status, receive_webhook, register_webhook, get_webhooks, delete_webhook, register_token};
 use recovery::handle_failed_messages;
+use crate::queue::consume_batch;
+use crate::types::QueueMessage;
 
 pub use pushover::PushOverClient;
 pub use db::Db;
@@ -18,6 +23,21 @@ pub use db::Db;
 #[event(scheduled)]
 pub async fn scheduled(event: ScheduledEvent, env: Env, ctx: ScheduleContext) {
     handle_failed_messages(event, env, ctx).await.ok();
+}
+
+#[event(queue)]
+pub async fn queue(
+    message_batch: MessageBatch<QueueMessage>,
+    env: Env,
+    _ctx: Context,
+) -> Result<()> {
+    let messages: Vec<QueueMessage> = message_batch.messages()?
+        .into_iter()
+        .map(|m| m.body().clone())
+        .collect();
+
+    consume_batch(&messages, &env).await;
+    Ok(())
 }
 
 #[event(fetch)]
