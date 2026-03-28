@@ -4,12 +4,16 @@ mod middleware;
 mod routes;
 mod recovery;
 mod utils;
+mod pushover;
+mod db;
 
 use worker::*;
-use types::ErrorResponse;
 use middleware::{with_cors, handle_options};
 use routes::{root, health, not_found, send_message, get_status, receive_webhook, register_webhook, get_webhooks, delete_webhook};
 use recovery::handle_failed_messages;
+
+pub use pushover::PushOverClient;
+pub use db::Db;
 
 #[event(scheduled)]
 pub async fn scheduled(event: ScheduledEvent, env: Env, ctx: ScheduleContext) {

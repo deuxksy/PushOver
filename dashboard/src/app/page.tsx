@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { loadSettings } from '@/lib/settings';
+import { useSettings } from './settings/hooks/useSettings';
 
 export default function Home() {
   const [showModal, setShowModal] = useState(false);
@@ -10,15 +10,11 @@ export default function Home() {
   const [title, setTitle] = useState('');
   const [sending, setSending] = useState(false);
   const [showBanner, setShowBanner] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const { settings, isLoading, hasRequiredSettings } = useSettings();
 
   useEffect(() => {
-    const settings = loadSettings();
-    if (!settings?.pushover?.apiToken || !settings?.pushover?.userKey) {
-      setShowBanner(true);
-    }
-    setIsLoading(false);
-  }, []);
+    setShowBanner(!hasRequiredSettings);
+  }, [hasRequiredSettings]);
 
   const handleSend = async () => {
     setSending(true);
