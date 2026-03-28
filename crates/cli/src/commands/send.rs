@@ -1,7 +1,7 @@
 use anyhow::Result;
-use pushover_sdk::{Message, PushOverClient};
-use std::env;
+use serde::Deserialize;
 
+#[derive(Debug)]
 pub struct SendOptions {
     pub message: String,
     pub title: Option<String>,
@@ -16,66 +16,76 @@ pub struct SendOptions {
     pub html: bool,
 }
 
+#[derive(Debug, Deserialize)]
+struct SendResponse {
+    status: String,
+    request: Option<String>,
+    receipt: Option<String>,
+}
+
 pub async fn execute(options: SendOptions) -> Result<()> {
-    // Load config and get credentials
     let config = crate::config::Config::load()?;
     let profile = config.get_default_profile()
         .ok_or_else(|| anyhow::anyhow!("No default profile found"))?;
 
+    // Worker API credentials
+    let worker_url = profile.api_endpoint.as_deref()
+        .ok_or_else(|| anyhow::anyhow!("No api_endpoint configured in profile"))?;
+    let worker_token = profile.worker_token.as_deref()
+        .or_else(|| profile.api_token.as_deref())
+        .ok_or_else(|| anyhow::anyhow!("No worker_token configured in profile"))?;
+
+    // PushOver credentials (sent in body for Worker to forward)
     let user_key = options.user.unwrap_or_else(|| profile.user_key.clone());
     let pushover_token = options.token.clone()
         .or_else(|| profile.pushover_token.clone())
         .or_else(|| profile.api_token.clone())
-        .ok_or_else(|| anyhow::anyhow!("No PushOver token configured. Set pushover_token or api_token in profile, or pass --token"))?;
+        .ok_or_else(|| anyhow::anyhow!("No pushover_token configured in profile"))?;
 
-    // Environment variable fallback
-    let user_key = env::var("PUSHOVER_USER_KEY").unwrap_or(user_key);
-    let api_token = env::var("PUSHOVER_API_TOKEN").unwrap_or(pushover_token);
+    let mut body = serde_json::Map::new();
+    body.insert("user".into(), serde_json::Value::String(user_key));
+    body.insert("token".into(), serde_json::Value::String(pushover_token));
+    body.insert("message".into(), serde_json::Value::String(options.message));
 
-    let client = PushOverClient::new(user_key, api_token);
-
-    let mut msg = Message {
-        message: options.message,
-        title: None,
-        priority: None,
-        priority_arg: None,
-        sound: None,
-        device: None,
-        url: None,
-        url_title: None,
-        html: None,
-        timestamp: None,
-    };
-
-    msg.title = options.title;
-    msg.device = options.device;
-    msg.sound = options.sound;
-    msg.url = options.url;
-    msg.url_title = options.url_title;
-
+    if let Some(v) = options.title { body.insert("title".into(), serde_json::Value::String(v)); }
+    if let Some(v) = options.device { body.insert("device".into(), serde_json::Value::String(v)); }
+    if let Some(v) = options.sound { body.insert("sound".into(), serde_json::Value::String(v)); }
+    if let Some(v) = options.url { body.insert("url".into(), serde_json::Value::String(v)); }
+    if let Some(v) = options.url_title { body.insert("url_title".into(), serde_json::Value::String(v)); }
     if let Some(p) = options.priority {
-        msg.priority = Some(p as i32);
+        body.insert("priority".into(), serde_json::Value::Number(p.into()));
         if p == 2 {
-            msg.priority_arg = Some(pushover_sdk::PriorityArgs {
-                retry: Some(300),
-                expire: Some(3600),
-            });
+            body.insert("retry".into(), serde_json::Value::Number(300.into()));
+            body.insert("expire".into(), serde_json::Value::Number(3600.into()));
         }
     }
-
     if options.html {
-        msg.html = Some(true);
+        body.insert("html".into(), serde_json::Value::Number(1.into()));
     }
-
     if let Some(ts) = options.timestamp {
-        msg.timestamp = Some(ts as u64);
+        body.insert("timestamp".into(), serde_json::Value::Number(ts.into()));
     }
 
-    let response = client.send(msg).await?;
+    let url = format!("{}/api/v1/messages", worker_url.trim_end_matches('/'));
+    let client = reqwest::Client::new();
+    let response = client.post(&url)
+        .header("Authorization", format!("Bearer {}", worker_token))
+        .header("Content-Type", "application/json")
+        .json(&body)
+        .send()
+        .await?;
+
+    if !response.status().is_success() {
+        let status = response.status();
+        let text = response.text().await.unwrap_or_default();
+        anyhow::bail!("Worker API error ({}): {}", status, text);
+    }
+
+    let data: SendResponse = response.json().await?;
 
     println!("Message sent successfully!");
-    println!("Status: {}", response.status);
-    if let Some(receipt) = response.receipt {
+    println!("Status: {}", data.status);
+    if let Some(receipt) = data.receipt {
         println!("Receipt: {}", receipt);
     }
 

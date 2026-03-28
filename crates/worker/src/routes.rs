@@ -62,10 +62,14 @@ pub async fn send_message(
     let retry = body.get("retry").and_then(|v| v.as_u64()).map(|r| r as u32);
     let expire = body.get("expire").and_then(|v| v.as_u64()).map(|e| e as u32);
 
-    // PushOver API 호출
+    // PushOver API 호출 - body의 token 필드를 PushOver 앱 토큰으로 사용
+    let pushover_token = body.get("token")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| Error::from("Missing 'token' field (PushOver app token)"))?;
+
     let client = PushOverClient::from_env(&ctx.env)?;
     let result = match client.send_message(
-        &token, user, message, title, priority, sound,
+        pushover_token, user, message, title, priority, sound,
         device, url, url_title, html, retry, expire,
     ).await {
         Ok(r) => r,

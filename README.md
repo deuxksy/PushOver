@@ -283,12 +283,8 @@ let response = client.send(msg).await?;
 pushover send "Hello World" --title "Test"
 pushover send "긴급" --device iphone --sound siren
 
-# 이력 조회
+# 이력 조회 (Worker API 통해 D1에서 조회)
 pushover history --limit 50
-
-# 설정 관리
-pushover config set user_key <KEY>
-pushover config set token <TOKEN>
 ```
 
 ### Rust Worker (`crates/worker/`)
