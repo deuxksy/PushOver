@@ -71,10 +71,16 @@ else
   exit 1
 fi
 
+# Verbose 모드 (선택 사항)
+VERBOSE="${VERBOSE:-false}"
+if [ "$VERBOSE" = "true" ]; then
+  set -x  # 디버깅 출력 활성화
+fi
+
 # 필수 환경변수 검증
 : "${WORKER_URL:?WORKER_URL required}"
-: "${WORKER_TOKEN:?WORKER_TOKEN required}"
-: "${PUSHOVER_TOKEN:?PUSHOVER_TOKEN required}"
+: "${API_TOKEN:?API_TOKEN required}"
+: "${PUSHOVER_API_TOKEN:?PUSHOVER_API_TOKEN required}"
 : "${PUSHOVER_USER_KEY:?PUSHOVER_USER_KEY required}"
 
 # 테스트 카운터
@@ -106,21 +112,28 @@ test_send_message() {
   log_test "Send Message"
 
   timestamp=$(date +%s)
-  response=$(curl -s -X POST "$WORKER_URL/api/v1/messages" \
+  response=$(curl -s --max-time 10 -X POST "$WORKER_URL/api/v1/messages" \
     -H "Content-Type: application/json" \
-    -H "Authorization: Bearer $WORKER_TOKEN" \
+    -H "Authorization: Bearer $API_TOKEN" \
     -d "{
       \"user\": \"$PUSHOVER_USER_KEY\",
       \"message\": \"Test message $timestamp\",
       \"title\": \"API Test\"
     }")
 
-  status=$(echo "$response" | jq -r '.status')
+  status=$(echo "$response" | jq -r '.status' 2>/dev/null)
+
+  if [ -z "$status" ] || [ "$status" = "null" ]; then
+    echo "✗ Failed to parse JSON response"
+    echo "  Response: $response"
+    ((FAILED++))
+    return
+  fi
 
   if [ "$status" = "success" ]; then
     receipt=$(echo "$response" | jq -r '.receipt')
     echo "✓ Message sent, receipt: $receipt"
-    export LAST_RECEIPT="$receipt"
+    LAST_RECEIPT="$receipt"  # export 불필요, 동일 스크립트 내에서 유효
     ((PASSED++))
   else
     echo "✗ Expected status 'success', got '$status'"
@@ -133,8 +146,8 @@ test_send_message() {
 test_get_messages() {
   log_test "Get Messages"
 
-  response=$(curl -s "$WORKER_URL/api/v1/messages?limit=10" \
-    -H "Authorization: Bearer $WORKER_TOKEN")
+  response=$(curl -s --max-time 10 "$WORKER_URL/api/v1/messages?limit=10" \
+    -H "Authorization: Bearer $API_TOKEN")
 
   status=$(echo "$response" | jq -r '.status')
   count=$(echo "$response" | jq -r '.messages | length')
@@ -158,8 +171,8 @@ test_get_message_status() {
     return
   fi
 
-  response=$(curl -s "$WORKER_URL/api/v1/messages/$LAST_RECEIPT/status" \
-    -H "Authorization: Bearer $WORKER_TOKEN")
+  response=$(curl -s --max-time 10 "$WORKER_URL/api/v1/messages/$LAST_RECEIPT/status" \
+    -H "Authorization: Bearer $API_TOKEN")
 
   status=$(echo "$response" | jq -r '.status')
 
@@ -177,14 +190,15 @@ test_get_message_status() {
 test_authentication_required() {
   log_test "Authentication Required"
 
-  response=$(curl -s "$WORKER_URL/api/v1/messages?limit=5")
+  # HTTP 상태 코드로 검증
+  http_code=$(curl -s -w "%{http_code}" -o /tmp/response.json "$WORKER_URL/api/v1/messages?limit=5")
 
-  if echo "$response" | grep -q "Unauthorized\|401"; then
-    echo "✓ Correctly rejected unauthenticated request"
+  if [ "$http_code" = "401" ]; then
+    echo "✓ Correctly rejected unauthenticated request (401)"
     ((PASSED++))
   else
-    echo "✗ Should require authentication"
-    echo "  Response: $response"
+    echo "✗ Expected 401, got HTTP $http_code"
+    echo "  Response: $(cat /tmp/response.json)"
     ((FAILED++))
   fi
 }
@@ -231,15 +245,17 @@ test-api-verbose:
 ```bash
 # Worker API
 WORKER_URL=https://pushover-worker.cromksy.workers.dev
-WORKER_TOKEN=your-worker-token-here
+API_TOKEN=your-worker-token-here
 
 # PushOver Credentials (실제 전송용)
-PUSHOVER_TOKEN=your-pushover-api-token
+PUSHOVER_API_TOKEN=your-pushover-api-token
 PUSHOVER_USER_KEY=your-pushover-user-key
 
 # Test Options
 VERBOSE=false
 ```
+
+**참고**: 환경변수명은 기존 `.env.example`, README와 통일되어 있습니다 (`WORKER_TOKEN` → `API_TOKEN`, `PUSHOVER_TOKEN` → `PUSHOVER_API_TOKEN`).
 
 ---
 
@@ -263,8 +279,8 @@ make test-api
 - name: Run Worker API tests
   env:
     WORKER_URL: ${{ secrets.WORKER_URL }}
-    WORKER_TOKEN: ${{ secrets.WORKER_TOKEN }}
-    PUSHOVER_TOKEN: ${{ secrets.PUSHOVER_TOKEN }}
+    API_TOKEN: ${{ secrets.API_TOKEN }}
+    PUSHOVER_API_TOKEN: ${{ secrets.PUSHOVER_API_TOKEN }}
     PUSHOVER_USER_KEY: ${{ secrets.PUSHOVER_USER_KEY }}
   run: make test-api
 ```
@@ -340,5 +356,7 @@ echo "$response" | grep -q "Unauthorized"
 ## 참고사항
 
 - **dev.spec.ts 버그 수정**: 현재 `../.env.test` 경로를 `../../.env.test`로 수정 필요
+- **.gitignore 업데이트**: `.env.test`를 Git 제외 목록에 추가 필요
 - **README와 동기화**: README의 curl 예시와 테스트 코드를 동기화
 - **테스트 격리**: 실제 PushOver API 호출이므로 테스트 전용 계정 사용 권장
+- **타임아웃**: curl 요청에 `--max-time 10` 추가 (10초 타임아웃)
