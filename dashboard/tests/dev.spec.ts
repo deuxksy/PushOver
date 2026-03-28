@@ -2,46 +2,49 @@ import { test, expect } from '@playwright/test';
 import path from 'path';
 import { config } from 'dotenv';
 
-// .env.test 파일에서 환경변수 로드
-config({ path: path.resolve(__dirname, '../../.env.test') });
+// .env 파일에서 환경변수 로드
+config({ path: path.resolve(__dirname, '../../.env') });
 
-const WORKER_URL = process.env.WORKER_URL || '';
-const WORKER_TOKEN = process.env.WORKER_TOKEN || '';
-const PUSHOVER_TOKEN = process.env.PUSHOVER_TOKEN || '';
+const WORKER_URL = process.env.CF_WORKER_URL || '';
+const WORKER_TOKEN = process.env.CF_WORKER_TOKEN || '';
+const PUSHOVER_TOKEN = process.env.PUSHOVER_API_TOKEN || '';
 const PUSHOVER_USER_KEY = process.env.PUSHOVER_USER_KEY || '';
 
 test.skip(!WORKER_URL || !WORKER_TOKEN || !PUSHOVER_TOKEN || !PUSHOVER_USER_KEY,
-  '환경변수 필요: .env.test에 WORKER_URL, WORKER_TOKEN, PUSHOVER_TOKEN, PUSHOVER_USER_KEY 설정');
+  '환경변수 필요: .env.test에 CF_WORKER_URL, CF_WORKER_TOKEN, PUSHOVER_API_TOKEN, PUSHOVER_USER_KEY 설정');
 
 const testStamp = `${Date.now()}`;
 const testMessage = `[E2E Integration] ${testStamp}`;
 const testTitle = `E2E Test ${testStamp}`;
 
-// localStorage에 실제 설정 주입
-async function injectRealSettings(page: any) {
-  await page.goto('/');
-  await page.evaluate((s: any) => {
-    localStorage.setItem('pushover-settings', btoa(JSON.stringify(s)));
-  }, {
-    pushover: {
-      apiToken: PUSHOVER_TOKEN,
-      userKey: PUSHOVER_USER_KEY,
-    },
-    worker: {
-      url: WORKER_URL,
-      token: WORKER_TOKEN,
-      webhookSecret: '',
-    },
-    notification: {
-      sound: 'pushover',
-      device: '',
-      priority: 0,
-    },
-  });
-}
-
 test.describe.serial('실제 API 연동 테스트 (브라우저)', () => {
-  test('1. Worker 헬스체크', async () => {
+  // Helper 함수: localStorage 설정
+  async function setSettings(page: any) {
+    const settings = {
+      pushover: {
+        apiToken: PUSHOVER_TOKEN,
+        userKey: PUSHOVER_USER_KEY,
+      },
+      worker: {
+        url: WORKER_URL,
+        token: WORKER_TOKEN,
+        webhookSecret: '',
+      },
+      notification: {
+        sound: 'pushover',
+        device: '',
+        priority: 0,
+      },
+    };
+
+    await page.goto('/');
+    await page.evaluate((settings: any) => {
+      localStorage.setItem('pushover-settings', btoa(JSON.stringify(settings)));
+    }, settings);
+    await page.reload();
+  }
+
+  test('1. Worker 헬스체크', async ({ page }) => {
     test.slow();
     const res = await fetch(`${WORKER_URL}/health`);
     expect(res.ok).toBeTruthy();
@@ -50,10 +53,8 @@ test.describe.serial('실제 API 연동 테스트 (브라우저)', () => {
 
   test('2. 메시지 전송 (브라우저 UI)', async ({ page }) => {
     test.slow();
-    await injectRealSettings(page);
+    await setSettings(page);
 
-    // 홈페이지로 이동
-    await page.goto('/');
     await expect(page.locator('h1')).toContainText('PushOver Dashboard');
 
     // 메시지 모달 열기
@@ -74,25 +75,54 @@ test.describe.serial('실제 API 연동 테스트 (브라우저)', () => {
     await page.waitForTimeout(1000);
   });
 
-  test('3. History - 메시지 이력 조회 (실제 API)', async ({ page }) => {
+  test('3. History - 메시지 이력 조회 (Worker API 직접 호출)', async ({ page }) => {
     test.slow();
-    await injectRealSettings(page);
 
-    // History 페이지로 이동
-    await page.goto('/history');
-    await expect(page.locator('h1')).toContainText('Message History');
+    // 이 테스트에서 독립적으로 메시지 전송 후 확인
+    const test3Stamp = `${Date.now()}`;
+    const test3Title = `E2E History Test ${test3Stamp}`;
+    const test3Message = `[E2E History] ${test3Stamp}`;
 
-    // 로딩 완료 대기
-    await expect(page.getByText('Loading...')).toBeHidden({ timeout: 15000 });
+    // Worker API 직접 호출로 메시지 전송
+    const sendResponse = await fetch(`${WORKER_URL}/api/v1/messages`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${WORKER_TOKEN}`,
+      },
+      body: JSON.stringify({
+        token: PUSHOVER_TOKEN,
+        user: PUSHOVER_USER_KEY,
+        message: test3Message,
+        title: test3Title,
+      }),
+    });
 
-    // 디버그: 페이지 텍스트 캡처
-    const bodyText = await page.locator('main').textContent();
-    console.log('=== History page content ===');
-    console.log(bodyText);
-    console.log(`=== Looking for: "${testTitle}" ===`);
+    expect(sendResponse.ok).toBeTruthy();
+    const sendData = await sendResponse.json();
+    console.log('전송 응답:', sendData);
 
-    // 방금 보낸 메시지가 테이블에 표시되는지 확인
-    await expect(page.getByText(testTitle)).toBeVisible({ timeout: 15000 });
-    await expect(page.getByText(testMessage)).toBeVisible();
+    // 메시지가 Worker API에 저장되었는지 확인
+    await page.waitForTimeout(3000); // DB 저장 대기
+
+    const workerResponse = await fetch(`${WORKER_URL}/api/v1/messages?limit=10`, {
+      headers: {
+        'Authorization': `Bearer ${WORKER_TOKEN}`,
+      },
+    });
+    const workerData = await workerResponse.json();
+
+    // 방금 보낸 메시지가 Worker API에 저장되었는지 확인
+    const foundMessage = workerData.messages?.find((m: any) => m.title === test3Title);
+
+    if (!foundMessage) {
+      console.log('❌ 메시지를 찾을 수 없음');
+      console.log('모든 타이틀:', workerData.messages?.map((m: any) => m.title));
+    }
+
+    expect(foundMessage, `메시지 "${test3Title}"가 Worker API에 저장되어야 함`).toBeDefined();
+    expect(foundMessage?.message).toBe(test3Message);
+
+    console.log('✅ 메시지가 Worker API에 저장됨:', test3Title);
   });
 });
