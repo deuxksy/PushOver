@@ -329,9 +329,17 @@ Worker URL: `https://pushover-worker.cromksy.workers.dev`
 ```bash
 # 환경변수 설정
 WORKER_URL="https://pushover-worker.cromksy.workers.dev"
-API_TOKEN="<your-api-token>"
+
+# Worker 인증 토큰 (D1 api_tokens 테이블에 등록된 토큰)
+API_TOKEN="<your-worker-api-token>"
+
+# PushOver 사용자 키 (PushOver 계정 설정에서 확인)
 PUSHOVER_USER_KEY="<your-pushover-user-key>"
 ```
+
+> **참고:** `API_TOKEN`은 PushOver API 토큰(`PUSHOVER_API_TOKEN`)이 아닙니다.
+> - `API_TOKEN` = Worker 자체 인증용 (D1 `api_tokens` 테이블에 등록)
+> - `PUSHOVER_API_TOKEN` = PushOver 앱 토큰 (요청 body의 `token` 필드로 전송)
 
 ```bash
 # 헬스체크
@@ -342,7 +350,7 @@ curl -s -X POST "$WORKER_URL/api/v1/messages" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $API_TOKEN" \
   -d '{
-    "user": "'"$PUSHOVER_USER_KEY"'",
+    "user": "$PUSHOVER_USER_KEY",
     "message": "Hello from PushOver Worker!",
     "title": "테스트 알림",
     "priority": 0,
