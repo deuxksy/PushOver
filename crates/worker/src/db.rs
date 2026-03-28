@@ -102,6 +102,14 @@ impl Db {
         Ok(())
     }
 
+    pub async fn update_message_image_url(&self, id: &str, image_url: &str) -> Result<()> {
+        self.d1.prepare("UPDATE messages SET image_url = ? WHERE id = ?")
+            .bind(&[JsValue::from_str(image_url), JsValue::from_str(id)])?
+            .run()
+            .await?;
+        Ok(())
+    }
+
     pub async fn acknowledge_message(&self, id: &str) -> Result<()> {
         self.d1
             .prepare("UPDATE messages SET status = 'acknowledged', acknowledged_at = datetime('now'), updated_at = datetime('now') WHERE id = ?")
