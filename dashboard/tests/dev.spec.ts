@@ -3,7 +3,7 @@ import path from 'path';
 import { config } from 'dotenv';
 
 // .env.test 파일에서 환경변수 로드
-config({ path: path.resolve(__dirname, '../.env.test') });
+config({ path: path.resolve(__dirname, '../../.env.test') });
 
 const WORKER_URL = process.env.WORKER_URL || '';
 const WORKER_TOKEN = process.env.WORKER_TOKEN || '';

@@ -1,0 +1,68 @@
+<h2>Dashboard Settings 페이지 디자인</h2>
+<p class="subtitle">어떤 레이아웃이 마음에 드시나요?</p>
+
+<div class="options">
+  <div class="option" data-choice="simple" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>심플 (Simple)</h3>
+      <p>API Token + User Key 두 필드만. 최소한의 설정.</p>
+      <div class="mockup" style="margin-top: 12px; padding: 16px;">
+        <div style="border: 1px dashed #666; padding: 12px; border-radius: 8px;">
+          <div class="label">API Configuration</div>
+          <div class="mock-input" style="margin: 8px 0;">API Token ••••••••</div>
+          <div class="mock-input" style="margin: 8px 0;">User Key ••••••••</div>
+          <button class="mock-button">저장</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="grouped" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>그룹화 (Grouped)</h3>
+      <p>PushOver 설정 + Worker 설정을 섹션으로 분리</p>
+      <div class="mockup" style="margin-top: 12px; padding: 16px;">
+        <div style="border: 1px dashed #666; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
+          <div class="label">PushOver 설정</div>
+          <div class="mock-input" style="margin: 8px 0;">API Token ••••••••</div>
+          <div class="mock-input" style="margin: 8px 0;">User Key ••••••••</div>
+        </div>
+        <div style="border: 1px dashed #666; padding: 12px; border-radius: 8px;">
+          <div class="label">Worker 설정</div>
+          <div class="mock-input" style="margin: 8px 0;">Worker URL</div>
+          <div class="mock-input" style="margin: 8px 0;">Webhook Secret</div>
+        </div>
+        <button class="mock-button" style="margin-top: 12px;">저장</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="tabbed" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>탭 방식 (Tabbed)</h3>
+      <p>여러 설정을 탭으로 구분. 확장성 좋음.</p>
+      <div class="mockup" style="margin-top: 12px; padding: 16px;">
+        <div style="display: flex; gap: 8px; border-bottom: 1px solid #333; padding-bottom: 8px; margin-bottom: 12px;">
+          <span style="padding: 4px 12px; background: #333; border-radius: 4px;">PushOver</span>
+          <span style="padding: 4px 12px; color: #888;">Worker</span>
+          <span style="padding: 4px 12px; color: #888;">알림</span>
+        </div>
+        <div class="mock-input" style="margin: 8px 0;">API Token ••••••••</div>
+        <div class="mock-input" style="margin: 8px 0;">User Key ••••••••</div>
+        <button class="mock-button" style="margin-top: 12px;">저장</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 24px;">
+  <h3>추가 고려사항</h3>
+  <ul style="color: #aaa; font-size: 14px;">
+    <li>localStorage에 암호화 저장 여부</li>
+    <li>입력값 유효성 검증 (Test 버튼)</li>
+    <li>다크모드 지원 (이미 되어있음)</li>
+  </ul>
+</div>
