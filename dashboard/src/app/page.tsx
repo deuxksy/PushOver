@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSettings } from './settings/hooks/useSettings';
+import { pushOverAPI } from '@/lib/api';
 
 export default function Home() {
   const [showModal, setShowModal] = useState(false);
@@ -19,14 +20,13 @@ export default function Home() {
   const handleSend = async () => {
     setSending(true);
     try {
-      // TODO: Call API
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await pushOverAPI.sendMessage({ message, title: title || undefined });
       alert('메시지 전송 성공!');
       setShowModal(false);
       setMessage('');
       setTitle('');
     } catch (error) {
-      alert('전송 실패: ' + error);
+      alert('전송 실패: ' + (error instanceof Error ? error.message : error));
     } finally {
       setSending(false);
     }

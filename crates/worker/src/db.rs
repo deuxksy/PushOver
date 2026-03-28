@@ -1,6 +1,6 @@
 use worker::*;
 use wasm_bindgen::JsValue;
-use crate::types::{DbMessage, DbWebhook, DbFailedDelivery};
+use crate::types::{DbMessage, DbWebhook, DbFailedDelivery, DbApiToken};
 
 pub struct Db {
     d1: D1Database,
@@ -265,5 +265,52 @@ impl Db {
             .run()
             .await?;
         Ok(())
+    }
+
+    // ---- API Tokens ----
+
+    /// Bearer 토큰 검증: 활성 토큰이면 user_key 반환
+    pub async fn validate_token(&self, token: &str) -> Result<Option<String>> {
+        let result: Option<DbApiToken> = self.d1
+            .prepare("SELECT * FROM api_tokens WHERE token = ? AND active = 1")
+            .bind(&[JsValue::from_str(token)])?
+            .first(None)
+            .await?;
+
+        if result.is_some() {
+            // last_used_at 업데이트 (non-blocking)
+            let _ = self.d1
+                .prepare("UPDATE api_tokens SET last_used_at = datetime('now'), updated_at = datetime('now') WHERE token = ?")
+                .bind(&[JsValue::from_str(token)])?
+                .run()
+                .await;
+        }
+
+        Ok(result.map(|t| t.user_key))
+    }
+
+    /// 새 API 토큰 등록
+    pub async fn register_token(&self, token: &str, user_key: &str, name: Option<&str>) -> Result<()> {
+        self.d1
+            .prepare("INSERT INTO api_tokens (token, user_key, name, active, created_at, updated_at) VALUES (?, ?, ?, 1, datetime('now'), datetime('now'))")
+            .bind(&[
+                JsValue::from_str(token),
+                JsValue::from_str(user_key),
+                name.map(JsValue::from_str).unwrap_or(JsValue::NULL),
+            ])?
+            .run()
+            .await?;
+        Ok(())
+    }
+
+    /// 토큰 비활성화
+    pub async fn deactivate_token(&self, token: &str) -> Result<bool> {
+        let result = self.d1
+            .prepare("UPDATE api_tokens SET active = 0, updated_at = datetime('now') WHERE token = ?")
+            .bind(&[JsValue::from_str(token)])?
+            .run()
+            .await?;
+        let meta = result.meta()?.unwrap();
+        Ok(meta.changes.unwrap_or(0) > 0)
     }
 }

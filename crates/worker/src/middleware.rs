@@ -1,5 +1,6 @@
 use worker::*;
 use crate::types::ErrorResponse;
+use crate::db::Db;
 
 pub fn with_cors(mut response: Response) -> Response {
     let headers = response.headers_mut();
@@ -15,40 +16,23 @@ pub async fn handle_options(_req: Request, _ctx: RouteContext<()>) -> Result<Res
 
 pub async fn require_auth(
     req: &Request,
-    _ctx: &RouteContext<()>,
+    ctx: &RouteContext<()>,
 ) -> Result<Response> {
-    let auth_header = req.headers().get("Authorization")?;
+    let token = extract_token(req)?;
 
-    let api_token = match auth_header {
-        Some(header) => {
-            if header.starts_with("Bearer ") {
-                header[7..].to_string()
-            } else {
-                return Ok(Response::from_json(&ErrorResponse::unauthorized(
-                    "Missing Bearer token"
-                ))?.with_status(401));
-            }
+    let db = Db::new(ctx)?;
+    match db.validate_token(&token).await? {
+        Some(_user_key) => {
+            // 토큰 유효 - RouteContext에 상태를 저장할 수 없으므로
+            // 각 route에서 extract_token + validate_token 개별 호출 권장
+            Response::ok("")
         }
         None => {
-            return Ok(Response::from_json(&ErrorResponse::unauthorized(
-                "Missing Authorization header"
-            ))?.with_status(401));
+            Ok(Response::from_json(&ErrorResponse::unauthorized(
+                "Invalid or inactive token"
+            ))?.with_status(401))
         }
-    };
-
-    // Validate token (placeholder - will implement with D1)
-    if api_token.is_empty() {
-        return Ok(Response::from_json(&ErrorResponse::unauthorized(
-            "Invalid token"
-        ))?.with_status(401));
     }
-
-    // TODO: Store validated token in context for downstream handlers
-    // Note: RouteContext doesn't support setting params dynamically
-    // This will need to be implemented with custom state or D1 lookup
-
-    // Continue to next handler
-    Response::ok("")
 }
 
 /// Extract Bearer token from Authorization header. Returns the token string.

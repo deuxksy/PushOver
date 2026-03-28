@@ -134,6 +134,17 @@ pub struct DbWebhookDelivery {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DbApiToken {
+    pub token: String,
+    pub user_key: String,
+    pub name: Option<String>,
+    pub active: i32,
+    pub last_used_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DbFailedDelivery {
     pub id: String,
     pub message_id: String,

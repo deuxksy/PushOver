@@ -65,7 +65,8 @@ export class PushOverAPI {
   }
 
   async getHistory(limit = 50): Promise<Message[]> {
-    return this.request<Message[]>(`/api/v1/messages?limit=${limit}`);
+    const data = await this.request<{ status: string; messages: Message[] }>(`/api/v1/messages?limit=${limit}`);
+    return data.messages;
   }
 
   async sendMessage(data: SendMessageRequest): Promise<SendMessageResponse> {

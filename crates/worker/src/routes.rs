@@ -104,6 +104,31 @@ pub async fn send_message(
     }))?))
 }
 
+/// GET /api/v1/messages - 메시지 목록 조회
+pub async fn get_messages(
+    req: Request,
+    ctx: RouteContext<()>,
+) -> worker::Result<Response> {
+    let user_key = match extract_token(&req) {
+        Ok(t) => t,
+        Err(_) => return unauthorized_response("Missing or invalid Authorization header"),
+    };
+
+    let limit: u32 = req.url()?
+        .query_pairs()
+        .find(|(k, _)| k == "limit")
+        .and_then(|(_, v)| v.parse().ok())
+        .unwrap_or(50);
+
+    let db = Db::new(&ctx)?;
+    let messages = db.get_messages_by_user(&user_key, limit).await?;
+
+    Ok(with_cors(Response::from_json(&serde_json::json!({
+        "status": "success",
+        "messages": messages
+    }))?))
+}
+
 /// GET /api/v1/messages/:receipt/status - 메시지 수신 상태 조회
 pub async fn get_status(
     req: Request,
