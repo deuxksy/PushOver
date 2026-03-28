@@ -22,8 +22,8 @@ if [ "$VERBOSE" = "true" ]; then
 fi
 
 # 필수 환경변수 검증
-: "${WORKER_URL:?WORKER_URL required}"
-: "${API_TOKEN:?API_TOKEN required}"
+: "${CF_WORKER_URL:?CF_WORKER_URL required}"
+: "${CF_WORKER_TOKEN:?CF_WORKER_TOKEN required}"
 : "${PUSHOVER_API_TOKEN:?PUSHOVER_API_TOKEN required}"
 : "${PUSHOVER_USER_KEY:?PUSHOVER_USER_KEY required}"
 
@@ -40,7 +40,7 @@ log_test() { echo -e "${YELLOW}[TEST]${NC} $1"; }
 test_health_check() {
   log_test "Health Check"
 
-  response=$(curl -s "$WORKER_URL/health")
+  response=$(curl -s "$CF_WORKER_URL/health")
 
   if [ "$response" = "OK" ]; then
     echo "✓ Health check passed"
@@ -56,9 +56,9 @@ test_send_message() {
   log_test "Send Message"
 
   timestamp=$(date +%s)
-  response=$(curl -s --max-time 10 -X POST "$WORKER_URL/api/v1/messages" \
+  response=$(curl -s --max-time 10 -X POST "$CF_WORKER_URL/api/v1/messages" \
     -H "Content-Type: application/json" \
-    -H "Authorization: Bearer $API_TOKEN" \
+    -H "Authorization: Bearer $CF_WORKER_TOKEN" \
     -d "{
       \"user\": \"$PUSHOVER_USER_KEY\",
       \"message\": \"Test message $timestamp\",
@@ -90,8 +90,8 @@ test_send_message() {
 test_get_messages() {
   log_test "Get Messages"
 
-  response=$(curl -s --max-time 10 "$WORKER_URL/api/v1/messages?limit=10" \
-    -H "Authorization: Bearer $API_TOKEN")
+  response=$(curl -s --max-time 10 "$CF_WORKER_URL/api/v1/messages?limit=10" \
+    -H "Authorization: Bearer $CF_WORKER_TOKEN")
 
   status=$(echo "$response" | jq -r '.status')
   count=$(echo "$response" | jq -r '.messages | length')
@@ -115,8 +115,8 @@ test_get_message_status() {
     return
   fi
 
-  response=$(curl -s --max-time 10 "$WORKER_URL/api/v1/messages/$LAST_RECEIPT/status" \
-    -H "Authorization: Bearer $API_TOKEN")
+  response=$(curl -s --max-time 10 "$CF_WORKER_URL/api/v1/messages/$LAST_RECEIPT/status" \
+    -H "Authorization: Bearer $CF_WORKER_TOKEN")
 
   status=$(echo "$response" | jq -r '.status')
 
@@ -135,7 +135,7 @@ test_authentication_required() {
   log_test "Authentication Required"
 
   # HTTP 상태 코드로 검증
-  http_code=$(curl -s -w "%{http_code}" -o /tmp/response.json "$WORKER_URL/api/v1/messages?limit=5")
+  http_code=$(curl -s -w "%{http_code}" -o /tmp/response.json "$CF_WORKER_URL/api/v1/messages?limit=5")
 
   if [ "$http_code" = "401" ]; then
     echo "✓ Correctly rejected unauthenticated request (401)"
@@ -149,7 +149,7 @@ test_authentication_required() {
 
 # 메인 실행 함수
 run_all_tests() {
-  log_info "Starting Worker API tests for: $WORKER_URL"
+  log_info "Starting Worker API tests for: $CF_WORKER_URL"
   echo ""
 
   test_health_check
