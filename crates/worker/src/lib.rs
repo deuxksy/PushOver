@@ -37,5 +37,17 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
         .get_async("/404", not_found)
         .options_async("/*path", handle_options);
 
-    Ok(with_cors(router.run(req, env).await?))
+    let response = match router.run(req, env).await {
+        Ok(resp) => resp,
+        Err(e) => {
+            let body = serde_json::json!({
+                "status": "error",
+                "message": e.to_string()
+            });
+            Response::from_json(&body).unwrap_or_else(|_| {
+                Response::ok("Internal Server Error").unwrap()
+            }).with_status(500)
+        }
+    };
+    Ok(with_cors(response))
 }

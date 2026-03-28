@@ -36,6 +36,13 @@ pub async fn send_message(
         Err(_) => return unauthorized_response("Missing or invalid Authorization header"),
     };
 
+    // 토큰 검증 → user_key 획득
+    let db = Db::new(&ctx)?;
+    let user_key = match db.validate_token(&token).await? {
+        Some(key) => key,
+        None => return unauthorized_response("Invalid or inactive token"),
+    };
+
     let body: serde_json::Value = req.json().await?;
 
     let user = body.get("user")
@@ -67,7 +74,7 @@ pub async fn send_message(
             let msg_id = uuid::Uuid::new_v4().to_string();
             if let Ok(db) = Db::new(&ctx) {
                 let _ = db.insert_message(
-                    &msg_id, user, message, title,
+                    &msg_id, &user_key, message, title,
                     priority.unwrap_or(0), sound, device,
                     url, url_title, html.unwrap_or(false),
                     "failed", None, Some(&token),
@@ -86,7 +93,7 @@ pub async fn send_message(
     let msg_id = uuid::Uuid::new_v4().to_string();
     let db = Db::new(&ctx)?;
     db.insert_message(
-        &msg_id, user, message, title,
+        &msg_id, &user_key, message, title,
         priority.unwrap_or(0), sound, device,
         url, url_title, html.unwrap_or(false),
         "sent", result.receipt.as_deref(), Some(&token),
@@ -109,9 +116,15 @@ pub async fn get_messages(
     req: Request,
     ctx: RouteContext<()>,
 ) -> worker::Result<Response> {
-    let user_key = match extract_token(&req) {
+    let token = match extract_token(&req) {
         Ok(t) => t,
         Err(_) => return unauthorized_response("Missing or invalid Authorization header"),
+    };
+
+    let db = Db::new(&ctx)?;
+    let user_key = match db.validate_token(&token).await? {
+        Some(key) => key,
+        None => return unauthorized_response("Invalid or inactive token"),
     };
 
     let limit: u32 = req.url()?
@@ -120,7 +133,6 @@ pub async fn get_messages(
         .and_then(|(_, v)| v.parse().ok())
         .unwrap_or(50);
 
-    let db = Db::new(&ctx)?;
     let messages = db.get_messages_by_user(&user_key, limit).await?;
 
     Ok(with_cors(Response::from_json(&serde_json::json!({

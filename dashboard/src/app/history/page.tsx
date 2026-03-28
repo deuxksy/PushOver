@@ -56,7 +56,7 @@ export default function HistoryPage() {
                 {messages.map((msg) => (
                   <tr key={msg.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800">
                     <td className="px-6 py-4 text-sm text-zinc-900 dark:text-zinc-100">
-                      {new Date(msg.sent_at).toLocaleString()}
+                      {msg.sent_at ? new Date(msg.sent_at + 'Z').toLocaleString() : new Date(msg.created_at + 'Z').toLocaleString()}
                     </td>
                     <td className="px-6 py-4 text-sm font-medium text-zinc-900 dark:text-zinc-100">
                       {msg.title || '-'}

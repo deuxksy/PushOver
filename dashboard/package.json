@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "pages:build": "npx @cloudflare/next-on-pages",
+    "deploy": "pnpm run pages:build && wrangler pages deploy .vercel/output/static --project-name=pushover-dashboard --commit-dirty=true --commit-message=\"deploy dashboard\""
   },
   "dependencies": {
     "next": "16.2.1",

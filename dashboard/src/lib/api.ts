@@ -5,9 +5,10 @@ export interface Message {
   message: string;
   title?: string;
   status: string;
-  sent_at: string;
-  delivered_at?: string;
-  acknowledged_at?: string;
+  sent_at: string | null;
+  delivered_at?: string | null;
+  acknowledged_at?: string | null;
+  created_at: string;
 }
 
 export interface SendMessageRequest {
@@ -28,11 +29,9 @@ export interface SendMessageResponse {
 }
 
 export class PushOverAPI {
-  private settings: Settings;
-
-  constructor() {
+  private getSettings(): Settings {
     const stored = loadSettings();
-    this.settings = stored ?? {
+    return stored ?? {
       pushover: { ...DEFAULT_VALUES.pushover },
       worker: { ...DEFAULT_VALUES.worker },
       notification: { ...DEFAULT_VALUES.notification }
@@ -40,17 +39,18 @@ export class PushOverAPI {
   }
 
   private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
-    const workerUrl = this.settings.worker?.url || DEFAULT_VALUES.worker.url;
+    const settings = this.getSettings();
+    const workerUrl = settings.worker?.url || DEFAULT_VALUES.worker.url;
 
     const response = await fetch(`${workerUrl}${endpoint}`, {
       ...options,
       headers: {
         'Content-Type': 'application/json',
-        ...(this.settings.pushover?.apiToken && {
-          'Authorization': `Bearer ${this.settings.pushover.apiToken}`
+        ...(settings.pushover?.apiToken && {
+          'Authorization': `Bearer ${settings.pushover.apiToken}`
         }),
-        ...(this.settings.worker?.webhookSecret && {
-          'X-Webhook-Secret': this.settings.worker.webhookSecret
+        ...(settings.worker?.webhookSecret && {
+          'X-Webhook-Secret': settings.worker.webhookSecret
         }),
         ...options?.headers,
       },
@@ -70,8 +70,10 @@ export class PushOverAPI {
   }
 
   async sendMessage(data: SendMessageRequest): Promise<SendMessageResponse> {
+    const settings = this.getSettings();
+
     // 필수 설정 검증
-    if (!this.settings.pushover?.apiToken || !this.settings.pushover?.userKey) {
+    if (!settings.pushover?.apiToken || !settings.pushover?.userKey) {
       throw new Error('PushOver credentials not configured');
     }
 
@@ -79,13 +81,13 @@ export class PushOverAPI {
     return this.request('/api/v1/messages', {
       method: 'POST',
       body: JSON.stringify({
-        token: this.settings.pushover.apiToken,
-        user: this.settings.pushover.userKey,
+        token: settings.pushover.apiToken,
+        user: settings.pushover.userKey,
         message: data.message,
         title: data.title,
-        sound: data.sound || this.settings.notification?.sound || DEFAULT_VALUES.notification.sound,
-        device: data.device || this.settings.notification?.device || DEFAULT_VALUES.notification.device,
-        priority: data.priority ?? this.settings.notification?.priority ?? DEFAULT_VALUES.notification.priority,
+        sound: data.sound || settings.notification?.sound || DEFAULT_VALUES.notification.sound,
+        device: data.device || settings.notification?.device || DEFAULT_VALUES.notification.device,
+        priority: data.priority ?? settings.notification?.priority ?? DEFAULT_VALUES.notification.priority,
         url: data.url,
         url_title: data.url_title,
         html: data.html,

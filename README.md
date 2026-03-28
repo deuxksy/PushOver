@@ -141,7 +141,7 @@ flowchart LR
 ## ☁️ Cloudflare 서비스
 
 | 서비스 | 용도 | 비고 |
-|--------|------|------|
+| -------- | ------ |------|
 | **Workers** | Serverless API 서버 | Rust/WASM으로 빌드 |
 | **D1** | SQLite 기반 DB | 메시지, 웹훅 이력 저장 |
 | **KV** | Key-Value 스토리지 | 실패 메시지 백업 |
@@ -153,7 +153,7 @@ flowchart LR
 
 ## 📦 프로젝트 구조
 
-```
+```bash
 pushover/
 ├── crates/
 │   ├── sdk/                    # Rust SDK
@@ -278,6 +278,7 @@ let response = client.send(msg).await?;
 ```
 
 **기능**:
+
 - ✅ PushOver API 메시지 전송
 - ✅ 메시지 상태 조회
 - ✅ 웹훅 시그니처 검증 (HMAC-SHA256)
@@ -303,7 +304,7 @@ pushover config set token <TOKEN>
 **API 엔드포인트**:
 
 | Method | Path | 설명 |
-|--------|------|------|
+| -------- | ------ | ------ |
 | `GET` | `/` | 루트 정보 |
 | `GET` | `/health` | 헬스체크 |
 | `POST` | `/api/v1/messages` | 메시지 전송 |
@@ -314,6 +315,7 @@ pushover config set token <TOKEN>
 | `DELETE` | `/api/v1/webhooks/:id` | 웹훅 삭제 |
 
 **기능**:
+
 - ✅ Bearer 토큰 인증
 - ✅ CORS 지원
 - ✅ 메시지 큐잉 처리 (Cloudflare Queues)
@@ -323,11 +325,13 @@ pushover config set token <TOKEN>
 ### Next.js Dashboard (`dashboard/`)
 
 **페이지**:
+
 - `/` - 메인 (메시지 전송 모달 + 통계)
 - `/history` - 전송 이력 테이블
 - `/settings` - API 키 설정
 
 **기술 스택**:
+
 - Next.js 16 (App Router)
 - React 19
 - Tailwind CSS 4
@@ -385,6 +389,7 @@ CREATE TABLE webhook_events (
 ## 🔒 보안
 
 **보안 기능**:
+
 - **Timing-safe comparison**: 서명 검증에 상수시간 비교 사용 (Timing Attack 방지)
 - **HMAC-SHA256**: 웹훅 서명 검증
 - **CORS**: Cross-Origin 요청 제어
@@ -395,7 +400,7 @@ CREATE TABLE webhook_events (
 ## 📊 개발 현황
 
 | 컴포넌트 | 상태 | 비고 |
-|----------|------|------|
+| ---------- | ------ | ------ |
 | Rust SDK | ✅ 완료 | HTTP 클라이언트, 웹훅 검증 |
 | Rust CLI | ✅ 완료 | send, history 명령어 |
 | Rust Worker | ✅ 완료 | API 서버, 큐 처리, 복구 |
