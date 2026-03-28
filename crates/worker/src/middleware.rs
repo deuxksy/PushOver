@@ -50,3 +50,25 @@ pub async fn require_auth(
     // Continue to next handler
     Response::ok("")
 }
+
+/// Extract Bearer token from Authorization header. Returns the token string.
+/// Routes should call this and handle 401 response themselves.
+pub fn extract_token(req: &Request) -> Result<String> {
+    let auth_header = req.headers().get("Authorization")?;
+    match auth_header {
+        Some(header) if header.starts_with("Bearer ") => {
+            let token = header[7..].trim().to_string();
+            if token.is_empty() {
+                return Err(Error::from("Invalid token: empty bearer value"));
+            }
+            Ok(token)
+        }
+        Some(_) => Err(Error::from("Invalid Authorization header: expected Bearer token")),
+        None => Err(Error::from("Missing Authorization header")),
+    }
+}
+
+/// Helper to create a 401 unauthorized response from an error
+pub fn unauthorized_response(error_msg: &str) -> Result<Response> {
+    Ok(Response::from_json(&ErrorResponse::unauthorized(error_msg))?.with_status(401))
+}
