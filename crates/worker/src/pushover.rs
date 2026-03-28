@@ -30,7 +30,7 @@ impl PushOverClient {
     }
 
     pub fn from_env(env: &Env) -> Result<Self> {
-        let api_url = env.var("API_URL")
+        let api_url = env.var("PUSHOVER_API_URL")
             .map(|v| v.to_string())
             .unwrap_or_else(|_| "https://api.pushover.net".to_string());
         Ok(Self::new(&api_url))

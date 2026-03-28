@@ -183,8 +183,8 @@ pub async fn receive_webhook(
 
     let body = req.text().await?;
 
-    let secret = ctx.var("WEBHOOK_SECRET")
-        .map_err(|_| Error::from("WEBHOOK_SECRET not configured"))?
+    let secret = ctx.var("PUSHOVER_WEBHOOK_SECRET")
+        .map_err(|_| Error::from("PUSHOVER_WEBHOOK_SECRET not configured"))?
         .to_string();
 
     if !verify_signature(&body, &signature, &secret)? {
