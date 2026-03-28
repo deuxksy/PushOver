@@ -11,7 +11,7 @@ thiserror.workspace = true
 wasm-bindgen.workspace = true
 wasm-bindgen-futures.workspace = true
 js-sys.workspace = true
-worker = "0.7"
+worker = { version = "0.7", features = ["d1"] }
 console_error_panic_hook.workspace = true
 uuid = { version = "1.0", features = ["serde", "v4", "js"] }
 hmac = "0.12"

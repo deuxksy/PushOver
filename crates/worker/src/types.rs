@@ -78,3 +78,79 @@ impl From<Message> for WebhookMessage {
         }
     }
 }
+
+// DB mapping structs
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DbMessage {
+    pub id: String,
+    pub user_key: String,
+    pub message: String,
+    pub title: Option<String>,
+    pub priority: i32,
+    pub sound: Option<String>,
+    pub device: Option<String>,
+    pub url: Option<String>,
+    pub url_title: Option<String>,
+    pub html: i32, // SQLite INTEGER
+    pub retry: Option<i32>,
+    pub expire: Option<i32>,
+    pub status: String,
+    pub receipt: Option<String>,
+    pub api_token: Option<String>,
+    pub sent_at: Option<String>,
+    pub delivered_at: Option<String>,
+    pub acknowledged_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DbWebhook {
+    pub id: String,
+    pub user_key: String,
+    pub url: String,
+    pub secret: String,
+    pub events: String, // JSON array stored as string
+    pub active: i32,    // SQLite INTEGER for boolean
+    pub last_triggered_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DbWebhookDelivery {
+    pub id: String,
+    pub webhook_id: String,
+    pub message_id: String,
+    pub event_type: String,
+    pub status: String,
+    pub retry_count: i32,
+    pub last_retry_at: Option<String>,
+    pub response_code: Option<i32>,
+    pub response_body: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DbApiToken {
+    pub token: String,
+    pub user_key: String,
+    pub name: Option<String>,
+    pub active: i32,
+    pub last_used_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DbFailedDelivery {
+    pub id: String,
+    pub message_id: String,
+    pub attempt_count: i32,
+    pub last_attempt_at: Option<String>,
+    pub error_message: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
+}
