@@ -29,6 +29,11 @@ export function PushOverTab({ settings, onUpdate }: PushOverTabProps) {
       return;
     }
 
+    if (!settings.worker.token) {
+      setTestResult({ success: false, message: 'Worker 설정에서 Worker Token을 입력해주세요' });
+      return;
+    }
+
     setIsTesting(true);
     setTestResult(null);
 
@@ -37,7 +42,7 @@ export function PushOverTab({ settings, onUpdate }: PushOverTabProps) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiToken}`,
+          'Authorization': `Bearer ${settings.worker.token}`,
         },
         body: JSON.stringify({
           token: apiToken,

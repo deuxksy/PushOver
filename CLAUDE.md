@@ -1,2 +1,3 @@
+- API Token, API Key 값을 이야기 할때는 항상 Full Name 으로 이야기 한다.
 - cloudflare-docs MCP 를 이용해서 Cloudflare 기능을 참조한다.
 - Program Languade 는 Context7 MCP 를 참조한다.

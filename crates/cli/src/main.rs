@@ -74,6 +74,21 @@ enum Commands {
         #[arg(short = 't', long)]
         token: Option<String>,
     },
+
+    /// Register a Worker API token
+    Register {
+        /// Worker API token to register
+        #[arg(short = 't', long)]
+        token: String,
+
+        /// PushOver user key
+        #[arg(short = 'u', long)]
+        user_key: String,
+
+        /// Token name/description
+        #[arg(short = 'n', long)]
+        name: Option<String>,
+    },
 }
 
 #[tokio::main]
@@ -99,6 +114,14 @@ async fn main() -> Result<()> {
         }
         Commands::History { limit, user, token } => {
             commands::history::execute(limit, user, token).await?;
+        }
+        Commands::Register { token, user_key, name } => {
+            let options = commands::register::RegisterOptions {
+                token,
+                user_key,
+                name,
+            };
+            commands::register::execute(options).await?;
         }
     }
 

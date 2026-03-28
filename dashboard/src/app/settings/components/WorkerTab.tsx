@@ -12,18 +12,16 @@ interface WorkerTabProps {
 export function WorkerTab({ settings, onUpdate, onReset }: WorkerTabProps) {
   const [url, setUrl] = useState(settings.worker.url);
   const [token, setToken] = useState(settings.worker.token || '');
-  const [webhookSecret, setWebhookSecret] = useState(settings.worker.webhookSecret || '');
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   useEffect(() => {
     setUrl(settings.worker.url);
     setToken(settings.worker.token || '');
-    setWebhookSecret(settings.worker.webhookSecret || '');
   }, [settings.worker]);
 
   const handleSave = () => {
     onUpdate({
-      worker: { url, token: token || undefined, webhookSecret: webhookSecret || undefined }
+      worker: { url, token: token || undefined }
     });
   };
 
@@ -63,7 +61,7 @@ export function WorkerTab({ settings, onUpdate, onReset }: WorkerTabProps) {
 
       <div>
         <label className="block text-sm font-medium text-zinc-300 mb-2">
-          Worker Token <span className="text-red-400">*</span>
+          Worker Token (CF_WORKER_TOKEN) <span className="text-red-400">*</span>
         </label>
         <input
           type="password"
@@ -73,20 +71,6 @@ export function WorkerTab({ settings, onUpdate, onReset }: WorkerTabProps) {
           className="w-full px-3 py-2 border border-zinc-700 rounded-lg bg-zinc-800 text-zinc-100 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <p className="text-xs text-zinc-500 mt-1">Worker D1에 등록된 인증 토큰</p>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-zinc-300 mb-2">
-          Webhook Secret <span className="text-zinc-500">(선택)</span>
-        </label>
-        <input
-          type="password"
-          value={webhookSecret}
-          onChange={(e) => setWebhookSecret(e.target.value)}
-          placeholder="wrangler.toml의 WEBHOOK_SECRET 값"
-          className="w-full px-3 py-2 border border-zinc-700 rounded-lg bg-zinc-800 text-zinc-100 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        <p className="text-xs text-zinc-500 mt-1">wrangler.toml 참조</p>
       </div>
 
       <div className="flex gap-3">

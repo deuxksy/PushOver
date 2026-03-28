@@ -229,7 +229,7 @@ cp .env.example .env
 **필수 환경변수** (.env 파일):
 
 | 변수명 | 설명 | 발급처 |
-|--------|------|--------|
+| -------- | ------ | -------- |
 | `CLOUDFLARE_API_TOKEN` | Cloudflare API 토큰 | [Cloudflare Dashboard](https://dash.cloudflare.com/profile/api-tokens) |
 | `CLOUDFLARE_ACCOUNT_ID` | Cloudflare 계정 ID | Cloudflare Dashboard 사이드바 |
 | `PUSHOVER_USER_KEY` | PushOver 사용자 키 | [PushOver](https://pushover.net) |
@@ -310,85 +310,48 @@ pushover history --limit 50
 - ✅ 실패 메시지 복구 (D1 `failed_deliveries` + Cron Trigger)
 - ✅ 웹훅 시그니처 검증 (Timing-safe)
 
-### cURL로 Worker API 테스트
-
-Worker URL: `https://pushover-worker.cromksy.workers.dev`
+### Worker API 테스트
 
 ```bash
-# 환경변수 설정
-WORKER_URL="https://pushover-worker.cromksy.workers.dev"
+# 1. 테스트 환경설정 파일 생성
+cp .env.test.example .env.test
+# .env.test 파일을 열어 실제 값으로 변경하세요
 
-# Worker 인증 토큰 (D1 api_tokens 테이블에 등록된 토큰)
-API_TOKEN="<your-worker-api-token>"
+# 2. 테스트 실행
+make test-api
 
-# PushOver 사용자 키 (PushOver 계정 설정에서 확인)
-PUSHOVER_USER_KEY="<your-pushover-user-key>"
+# Verbose 모드로 실행
+make test-api-verbose
 ```
+
+**테스트 항목:**
+
+- ✓ Health Check
+- ✓ 메시지 전송
+- ✓ 메시지 목록 조회
+- ✓ 메시지 수신 상태 조회
+- ✓ 인증 실패 검증
+
+**참고: cURL 예제** (개별 테스트용)
 
 ```bash
 # 헬스체크
-curl -s "$WORKER_URL/health"
+curl -s "$CF_WORKER_URL/health"
 
 # 메시지 전송
-curl -s -X POST "$WORKER_URL/api/v1/messages" \
+curl -s -X POST "$CF_WORKER_URL/api/v1/messages" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $API_TOKEN" \
+  -H "Authorization: Bearer $CF_WORKER_TOKEN" \
   -d '{
+    "token": "$PUSHOVER_API_TOKEN",
     "user": "$PUSHOVER_USER_KEY",
     "message": "Hello from PushOver Worker!",
-    "title": "테스트 알림",
-    "priority": 0,
-    "sound": "pushover"
+    "title": "테스트 알림"
   }'
 
-# 응답 예시
-# {"status":"success","request":"xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx","receipt":"xxxxxxxxxxxxxxxxxxxxxxxx"}
-
-# 우선순위 긴급 메시지 (priority=2, retry/expire 필수)
-curl -s -X POST "$WORKER_URL/api/v1/messages" \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $API_TOKEN" \
-  -d '{
-    "user": "$PUSHOVER_USER_KEY",
-    "message": "긴급 알림!",
-    "title": "URGENT",
-    "priority": 2,
-    "retry": 60,
-    "expire": 3600,
-    "sound": "siren"
-  }'
-
-# 메시지 목록 조회 (기본 50개)
-curl -s "$WORKER_URL/api/v1/messages" \
-  -H "Authorization: Bearer $API_TOKEN"
-
-# 메시지 목록 조회 (개수 제한)
-curl -s "$WORKER_URL/api/v1/messages?limit=10" \
-  -H "Authorization: Bearer $API_TOKEN"
-
-# 메시지 수신 상태 조회
-curl -s "$WORKER_URL/api/v1/messages/<receipt>/status" \
-  -H "Authorization: Bearer $API_TOKEN"
-
-# 응답 예시
-# {"status":"sent","receipt":"xxx","acknowledged":false,"delivered_at":null,"acknowledged_at":null,"created_at":"2026-03-28T12:00:00Z"}
-
-# Webhook 등록
-curl -s -X POST "$WORKER_URL/api/v1/webhooks/register" \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $API_TOKEN" \
-  -d '{
-    "url": "https://example.com/webhook",
-    "events": "delivered,acknowledged,expired"
-  }'
-
-# Webhook 목록 조회
-curl -s "$WORKER_URL/api/v1/webhooks" \
-  -H "Authorization: Bearer $API_TOKEN"
-
-# Webhook 삭제
-curl -s -X DELETE "$WORKER_URL/api/v1/webhooks/<webhook-id>" \
-  -H "Authorization: Bearer $API_TOKEN"
+# 메시지 목록 조회
+curl -s "$CF_WORKER_URL/api/v1/messages?limit=10" \
+  -H "Authorization: Bearer $CF_WORKER_TOKEN"
 ```
 
 ### Dashboard E2E 테스트 (Playwright)
@@ -418,7 +381,7 @@ npx playwright test --headed
 **테스트 케이스** (`tests/e2e/basic.spec.ts`):
 
 | 테스트 | 설명 |
-|--------|------|
+| -------- | ------ |
 | 메인 페이지 로드 | h1 타이틀, "메시지 보내기" 버튼 표시 확인 |
 | 메시지 전송 모달 열기 | 모달 오픈 → 제목/메시지 입력 필드 표시 확인 |
 | 메시지 전송 | 메시지 입력 → 전송 클릭 → 로딩 완료 확인 |

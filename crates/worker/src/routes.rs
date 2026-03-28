@@ -304,6 +304,30 @@ pub async fn delete_webhook(
     }
 }
 
+/// POST /api/v1/tokens/register - Worker API 토큰 등록
+pub async fn register_token(
+    mut req: Request,
+    ctx: RouteContext<()>,
+) -> worker::Result<Response> {
+    let body: serde_json::Value = req.json().await?;
+
+    let token = body.get("token")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| Error::from("Missing 'token' field"))?;
+    let user_key = body.get("user_key")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| Error::from("Missing 'user_key' field"))?;
+    let name = body.get("name").and_then(|v| v.as_str());
+
+    let db = Db::new(&ctx)?;
+    db.register_token(token, user_key, name).await?;
+
+    Ok(with_cors(Response::from_json(&serde_json::json!({
+        "status": "success",
+        "message": "Token registered successfully"
+    }))?))
+}
+
 /// 등록된 webhook에 이벤트 전달
 async fn trigger_webhooks(
     db: &Db,

@@ -9,7 +9,7 @@ mod db;
 
 use worker::*;
 use middleware::{with_cors, handle_options};
-use routes::{root, health, not_found, send_message, get_messages, get_status, receive_webhook, register_webhook, get_webhooks, delete_webhook};
+use routes::{root, health, not_found, send_message, get_messages, get_status, receive_webhook, register_webhook, get_webhooks, delete_webhook, register_token};
 use recovery::handle_failed_messages;
 
 pub use pushover::PushOverClient;
@@ -34,6 +34,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
         .post_async("/api/v1/webhooks/register", register_webhook)
         .get_async("/api/v1/webhooks", get_webhooks)
         .delete_async("/api/v1/webhooks/:id", delete_webhook)
+        .post_async("/api/v1/tokens/register", register_token)
         .get_async("/404", not_found)
         .options_async("/*path", handle_options);
 
