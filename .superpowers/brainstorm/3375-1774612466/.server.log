@@ -1,8 +1,0 @@
-{"type":"server-started","port":58726,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:58726","screen_dir":"/Users/crong/git/PushOver/.superpowers/brainstorm/3375-1774612466"}
-{"type":"screen-added","file":"/Users/crong/git/PushOver/.superpowers/brainstorm/3375-1774612466/settings-options.html"}
-{"type":"screen-updated","file":"/Users/crong/git/PushOver/.superpowers/brainstorm/3375-1774612466/settings-options.html"}
-{"source":"user-event","type":"click","text":"C\n    \n      탭 방식 (Tabbed)\n      여러 설정을 탭으로 구분. 확장성 좋음.\n      \n        \n          PushOver\n          Worker\n          알림\n        \n        API Token ••••••••\n        User Key ••••••••\n        저장","choice":"tabbed","id":null,"timestamp":1774612624391}
-{"source":"user-event","type":"click","text":"C\n    \n      탭 방식 (Tabbed)\n      여러 설정을 탭으로 구분. 확장성 좋음.\n      \n        \n          PushOver\n          Worker\n          알림\n        \n        API Token ••••••••\n        User Key ••••••••\n        저장","choice":"tabbed","id":null,"timestamp":1774612625139}
-{"type":"screen-added","file":"/Users/crong/git/PushOver/.superpowers/brainstorm/3375-1774612466/settings-design.html"}
-{"type":"screen-added","file":"/Users/crong/git/PushOver/.superpowers/brainstorm/3375-1774612466/settings-design-v2.html"}
-{"type":"server-stopped","reason":"idle timeout"}
