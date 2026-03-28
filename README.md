@@ -1,6 +1,16 @@
 # PushOver Serverless Platform
 
-PushOver API를 위한 Rust 기반 Serverless 플랫폼입니다. Cloudflare Workers + D1을 활용한 알림 시스템입니다.
+PushOver API를 위한 Rust 와 TypeScript 기반의 Cloudflare Serverless 알림 시스템입니다.
+
+## 목차
+
+- [아키텍처](#-아키텍처)
+- [Cloudflare 서비스](#-cloudflare-서비스)
+- [프로젝트 구조](#-프로젝트-구조)
+- [데이터베이스](#-데이터베이스)
+- [빠른 시작](#-빠른-시작)
+- [테스트](#-테스트)
+- [배포](#-배포)
 
 ---
 
@@ -157,7 +167,7 @@ pushover/
 ## 🗄️ 데이터베이스
 
 > 스키마 상세: [`migrations/`](./migrations/) SQL 파일 참조
-> 
+>
 **D1 테이블**:
 
 - `api_tokens` - API 인증 토큰
