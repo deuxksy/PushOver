@@ -93,6 +93,7 @@ pub struct DbMessage {
     pub url: Option<String>,
     pub url_title: Option<String>,
     pub html: i32, // SQLite INTEGER
+    pub image_url: Option<String>,
     pub retry: Option<i32>,
     pub expire: Option<i32>,
     pub status: String,
@@ -154,3 +155,36 @@ pub struct DbFailedDelivery {
     pub created_at: String,
     pub updated_at: String,
 }
+
+// ---- v0.2.0: Queue + KV + R2 ----
+
+/// Queue에 투입되는 메시지 페이로드
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct QueueMessage {
+    pub id: String,
+    pub user_key: String,
+    pub api_token: String,
+    pub pushover_token: String,
+    pub user: String,
+    pub message: String,
+    pub title: Option<String>,
+    pub priority: Option<i32>,
+    pub sound: Option<String>,
+    pub device: Option<String>,
+    pub url: Option<String>,
+    pub url_title: Option<String>,
+    pub html: Option<bool>,
+    pub retry: Option<u32>,
+    pub expire: Option<u32>,
+    pub image_url: Option<String>,
+}
+
+/// KV 키 프리픽스
+pub const KV_PREFIX_TOKEN: &str = "pushover-tokens:";
+pub const KV_PREFIX_WEBHOOK: &str = "pushover-webhooks:";
+pub const KV_PREFIX_FAILED: &str = "pushover-failed:";
+
+/// KV 캐시 TTL (초)
+pub const TTL_TOKEN: u64 = 3600;       // 1시간
+pub const TTL_WEBHOOK: u64 = 300;      // 5분
+pub const TTL_FAILED: u64 = 604800;    // 7일
