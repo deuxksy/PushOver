@@ -5,13 +5,13 @@ import { config } from 'dotenv';
 // .env 파일에서 환경변수 로드
 config({ path: path.resolve(__dirname, '../../.env') });
 
-const WORKER_URL = process.env.CF_WORKER_URL || '';
-const WORKER_TOKEN = process.env.CF_WORKER_TOKEN || '';
+const WORKER_URL = process.env.CLOUDFLARE_WORKER_URL || '';
+const WORKER_TOKEN = process.env.CLOUDFLARE_WORKER_TOKEN || '';
 const PUSHOVER_TOKEN = process.env.PUSHOVER_API_TOKEN || '';
 const PUSHOVER_USER_KEY = process.env.PUSHOVER_USER_KEY || '';
 
 test.skip(!WORKER_URL || !WORKER_TOKEN || !PUSHOVER_TOKEN || !PUSHOVER_USER_KEY,
-  '환경변수 필요: .env.test에 CF_WORKER_URL, CF_WORKER_TOKEN, PUSHOVER_API_TOKEN, PUSHOVER_USER_KEY 설정');
+  '환경변수 필요: .env에 CLOUDFLARE_WORKER_URL, CLOUDFLARE_WORKER_TOKEN, PUSHOVER_API_TOKEN, PUSHOVER_USER_KEY 설정');
 
 const testStamp = `${Date.now()}`;
 const testMessage = `[E2E Integration] ${testStamp}`;
