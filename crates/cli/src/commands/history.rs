@@ -31,12 +31,16 @@ pub async fn execute(
     let worker_url = profile.api_endpoint.as_deref()
         .ok_or_else(|| anyhow::anyhow!("No api_endpoint configured in profile"))?;
 
+    let worker_token = profile.worker_token.as_deref()
+        .or_else(|| profile.api_token.as_deref())
+        .ok_or_else(|| anyhow::anyhow!("No worker_token configured in profile"))?;
+
     let limit = limit.unwrap_or(10);
     let url = format!("{}/api/v1/messages?limit={}", worker_url.trim_end_matches('/'), limit);
 
     let client = reqwest::Client::new();
     let response = client.get(&url)
-        .header("Authorization", format!("Bearer {}", profile.api_token))
+        .header("Authorization", format!("Bearer {}", worker_token))
         .header("Content-Type", "application/json")
         .send()
         .await?;

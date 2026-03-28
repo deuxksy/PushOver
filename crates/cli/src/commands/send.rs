@@ -23,11 +23,14 @@ pub async fn execute(options: SendOptions) -> Result<()> {
         .ok_or_else(|| anyhow::anyhow!("No default profile found"))?;
 
     let user_key = options.user.unwrap_or_else(|| profile.user_key.clone());
-    let api_token = options.token.unwrap_or_else(|| profile.api_token.clone());
+    let pushover_token = options.token.clone()
+        .or_else(|| profile.pushover_token.clone())
+        .or_else(|| profile.api_token.clone())
+        .ok_or_else(|| anyhow::anyhow!("No PushOver token configured. Set pushover_token or api_token in profile, or pass --token"))?;
 
     // Environment variable fallback
     let user_key = env::var("PUSHOVER_USER_KEY").unwrap_or(user_key);
-    let api_token = env::var("PUSHOVER_API_TOKEN").unwrap_or(api_token);
+    let api_token = env::var("PUSHOVER_API_TOKEN").unwrap_or(pushover_token);
 
     let client = PushOverClient::new(user_key, api_token);
 

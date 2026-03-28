@@ -13,7 +13,13 @@ pub struct Config {
 pub struct Profile {
     pub name: String,
     pub user_key: String,
-    pub api_token: String,
+    #[serde(default)]
+    pub pushover_token: Option<String>,
+    #[serde(default)]
+    pub worker_token: Option<String>,
+    #[serde(default)]
+    pub api_token: Option<String>,
+    #[serde(default)]
     pub api_endpoint: Option<String>,
 }
 
