@@ -1,6 +1,6 @@
 # PushOver Serverless Platform
 
-PushOver API를 위한 Rust 기반 Serverless 플랫폼입니다. Cloudflare Workers, D1, KV, Queues를 활용한 확장 가능한 알림 시스템입니다.
+PushOver API를 위한 Rust 기반 Serverless 플랫폼입니다. Cloudflare Workers + D1을 활용한 알림 시스템입니다.
 
 ---
 
@@ -18,8 +18,6 @@ graph TB
 
     subgraph "Cloudflare Edge"
         WORKER[Worker API<br/>Rust/WASM]
-        QUEUE[Cloudflare Queues]
-        KV[KV Namespace]
         D1[(D1 Database)]
     end
 
@@ -31,17 +29,12 @@ graph TB
     DASH -->|HTTP/REST| WORKER
     EXT -->|Webhook| WORKER
 
-    WORKER --> QUEUE
     WORKER --> D1
-    WORKER --> KV
-
-    QUEUE -->|Process| WORKER
     WORKER -->|Send Message| PO
+    PO -->|Callback| WORKER
 
     style WORKER fill:#f38020,color:#fff
     style D1 fill:#f38020,color:#fff
-    style KV fill:#f38020,color:#fff
-    style QUEUE fill:#f38020,color:#fff
 ```
 
 ### 메시지 전송 흐름
@@ -50,26 +43,21 @@ graph TB
 sequenceDiagram
     participant C as Client
     participant W as Worker API
-    participant Q as Queue
     participant D1 as D1 Database
     participant PO as PushOver API
 
     C->>W: POST /api/v1/messages
-    W->>W: 인증 검증
-    W->>W: 요청 검증 (Zod)
-    W->>Q: 메시지 큐잉
-    W->>D1: 상태 저장 (pending)
-    W-->>C: 200 OK {messageId}
-
-    Q->>W: 큐 메시지 처리
-    W->>PO: 메시지 전송
+    W->>W: Bearer 토큰 검증 → user_key 획득
+    W->>PO: PushOver API 호출
     alt 성공
         PO-->>W: 200 OK {receipt}
-        W->>D1: 상태 업데이트 (sent)
+        W->>D1: 메시지 저장 (status=sent)
+        W-->>C: {status: success, receipt}
     else 실패
         PO-->>W: Error
-        W->>D1: 상태 업데이트 (failed)
-        W->>W: KV에 백업 저장
+        W->>D1: 메시지 저장 (status=failed)
+        W->>D1: failed_deliveries 기록
+        W-->>C: 502 {status: error}
     end
 ```
 
@@ -77,55 +65,51 @@ sequenceDiagram
 
 ```mermaid
 flowchart TD
-    A[메시지 전송 실패] --> B[KV에 백업 저장<br/>failed:messageId]
-    B --> C{재시도 횟수 < 5?}
+    A[메시지 전송 실패] --> B[D1 failed_deliveries에 기록]
+    B --> C{재시도 횟수 < 3?}
 
-    C -->|Yes| D[5분 대기<br/>Recovery Worker Cron]
-    D --> E[큐에 재등록]
-    E --> F[재전송 시도]
+    C -->|Yes| D[Cron Trigger<br/>Recovery Worker]
+    D --> E[PushOver API 재전송]
 
-    C -->|No| G[최종 실패<br/>알림 발송]
+    C -->|No| F[최종 실패]
 
-    F --> H{전송 성공?}
-    H -->|Yes| I[KV에서 삭제]
-    H -->|No| C
+    E --> G{전송 성공?}
+    G -->|Yes| H[D1 상태 업데이트<br/>status=sent]
+    G -->|No| C
 
     style A fill:#ff6b6b
-    style I fill:#51cf66
-    style G fill:#ff6b6b
+    style H fill:#51cf66
+    style F fill:#ff6b6b
 ```
 
 ### 웹훅 처리 흐름
 
 ```mermaid
 sequenceDiagram
-    participant E as External Service
+    participant PO as PushOver API
     participant W as Worker API
-    participant Q as Queue
     participant D1 as D1 Database
+    participant EXT as 등록된 Webhook
 
-    E->>W: POST /webhook/:id
-    Note over E,W: X-Webhook-Signature 헤더 포함
+    PO->>W: POST /api/v1/webhooks (Callback)
+    Note over PO,W: X-Pushover-Signature 헤더 포함
 
     W->>W: HMAC-SHA256 서명 검증
     alt 서명 불일치
-        W-->>E: 401 Unauthorized
+        W-->>PO: 401 Unauthorized
     end
 
-    W->>Q: 웹훅 페이로드 큐잉
-    W->>D1: 웹훅 이벤트 로그 저장
-    W-->>E: 200 OK
-
-    Q->>W: 웹훅 처리
-    W->>W: 웹훅 핸들러 실행
-    W->>D1: 처리 결과 업데이트
+    W->>D1: 메시지 상태 업데이트 (delivered/acknowledged)
+    W->>EXT: 등록된 Webhook에 이벤트 전달
+    W->>D1: webhook_deliveries 기록
+    W-->>PO: 200 OK
 ```
 
 ### 웹훅 서명 검증
 
 ```mermaid
 flowchart LR
-    A[웹훅 요청] --> B{X-Webhook-Signature<br/>헤더 존재?}
+    A[웹훅 요청] --> B{X-Pushover-Signature<br/>헤더 존재?}
     B -->|No| C[401 Unauthorized]
     B -->|Yes| D[HMAC-SHA256<br/>서명 계산]
     D --> E{Timing-safe<br/>비교}
@@ -143,11 +127,13 @@ flowchart LR
 | 서비스 | 용도 | 비고 |
 | -------- | ------ |------|
 | **Workers** | Serverless API 서버 | Rust/WASM으로 빌드 |
-| **D1** | SQLite 기반 DB | 메시지, 웹훅 이력 저장 |
-| **KV** | Key-Value 스토리지 | 실패 메시지 백업 |
-| **Queues** | 메시지 큐 | 비동기 메시지 처리 |
+| **D1** | SQLite 기반 DB | 메시지, 웹훅, 인증 토큰 저장 |
 | **Pages** | 정적 호스팅 | Dashboard 배포용 |
-| **Cron Triggers** | 스케줄러 | Recovery Worker (5분마다) |
+| **KV** | 키-값 스토어 | 캐시 및 실패 메시지 백업 |
+| **R2** | 오브젝트 스토리지 | Terraform 상태 파일 저장 |
+| **Cron Triggers** | 스케줄러 | Recovery Worker (실패 메시지 재시도, */5 분) |
+
+> **인프라 관리**: D1, KV, R2, Cron Trigger는 `infrastructure/` 디렉토리의 **OpenTofu**로 관리. Worker 배포는 `wrangler` 사용.
 
 ---
 
@@ -175,12 +161,15 @@ pushover/
 │   │
 │   └── worker/                 # Cloudflare Worker
 │       ├── src/
-│       │   ├── lib.rs           # 진입점
-│       │   ├── routes/          # API 라우트
-│       │   ├── middleware/      # CORS, 인증
-│       │   ├── types/           # 요청/응답 타입
-│       │   ├── recovery/        # 실패 메시지 복구
-│       │   └── utils/           # 유틸리티
+│       │   ├── lib.rs           # 진입점 + 라우터
+│       │   ├── routes.rs        # API 라우트 핸들러
+│       │   ├── middleware.rs     # CORS, 인증
+│       │   ├── types.rs         # 요청/응답 타입
+│       │   ├── db.rs            # D1 데이터베이스 리포지토리
+│       │   ├── pushover.rs      # PushOver API 클라이언트
+│       │   ├── crypto.rs        # HMAC 서명 생성/검증
+│       │   ├── recovery.rs      # 실패 메시지 복구
+│       │   └── utils.rs         # 유틸리티
 │       └── wrangler.toml
 │
 ├── dashboard/                  # Next.js 웹 UI
@@ -190,19 +179,24 @@ pushover/
 │   │   │   ├── history/         # 이력 페이지
 │   │   │   └── settings/        # 설정 페이지
 │   │   └── lib/
-│   │       └── api.ts           # API 클라이언트
+│   │       ├── api.ts           # API 클라이언트
+│   │       └── settings.ts      # 설정 관리 (localStorage)
+│   ├── tests/e2e/               # Playwright E2E 테스트
 │   └── package.json
 │
-├── infrastructure/              # OpenTofu (Terraform)
-│   ├── main.tf
-│   ├── variables.tf
-│   └── outputs.tf
+├── migrations/                  # D1 마이그레이션
+│   ├── 0001_init.sql
+│   ├── 0002_add_api_token.sql
+│   └── 0003_api_tokens.sql
 │
-├── migrations/                # D1 마이그레이션
+├── infrastructure/              # OpenTofu 인프라
+│   ├── main.tf                  # D1, KV, R2, Cron Trigger
+│   ├── backend.tf               # R2 원격 상태 백엔드
+│   ├── variables.tf             # 변수 정의
+│   ├── outputs.tf               # 출력값
+│   └── terraform.tfvars         # 변수값
 │
-└── docs/                      # 문서
-    └── superpowers/specs/
-        └── 2026-03-26-pushover-serverless-design.md
+└── docs/                       # 문서
 ```
 
 ---
@@ -248,10 +242,8 @@ cp .env.example .env
 # 의존성 설치
 pnpm install
 
-# Worker 빌드
-cd crates/worker && pnpm install && pnpm build
-
-# Worker 배포
+# Worker 빌드 & 배포
+cd crates/worker
 wrangler deploy
 
 # Dashboard 실행
@@ -308,18 +300,18 @@ pushover config set token <TOKEN>
 | `GET` | `/` | 루트 정보 |
 | `GET` | `/health` | 헬스체크 |
 | `POST` | `/api/v1/messages` | 메시지 전송 |
-| `GET` | `/api/v1/messages/:receipt/status` | 상태 조회 |
-| `POST` | `/api/v1/webhooks` | 웹훅 수신 |
-| `POST` | `/api/v1/webhooks/register` | 웹훅 등록 |
-| `GET` | `/api/v1/webhooks` | 웹훅 목록 |
-| `DELETE` | `/api/v1/webhooks/:id` | 웹훅 삭제 |
+| `GET` | `/api/v1/messages` | 메시지 목록 조회 |
+| `GET` | `/api/v1/messages/:receipt/status` | 수신 상태 조회 |
+| `POST` | `/api/v1/webhooks` | PushOver callback 수신 |
+| `POST` | `/api/v1/webhooks/register` | Webhook 등록 |
+| `GET` | `/api/v1/webhooks` | Webhook 목록 조회 |
+| `DELETE` | `/api/v1/webhooks/:id` | Webhook 삭제 |
 
 **기능**:
 
-- ✅ Bearer 토큰 인증
+- ✅ Bearer 토큰 인증 (D1 `api_tokens` 테이블)
 - ✅ CORS 지원
-- ✅ 메시지 큐잉 처리 (Cloudflare Queues)
-- ✅ 실패 메시지 복구 (KV 백업 + Cron)
+- ✅ 실패 메시지 복구 (D1 `failed_deliveries` + Cron Trigger)
 - ✅ 웹훅 시그니처 검증 (Timing-safe)
 
 ### cURL로 Worker API 테스트
@@ -336,10 +328,6 @@ API_TOKEN="<your-worker-api-token>"
 # PushOver 사용자 키 (PushOver 계정 설정에서 확인)
 PUSHOVER_USER_KEY="<your-pushover-user-key>"
 ```
-
-> **참고:** `API_TOKEN`은 PushOver API 토큰(`PUSHOVER_API_TOKEN`)이 아닙니다.
-> - `API_TOKEN` = Worker 자체 인증용 (D1 `api_tokens` 테이블에 등록)
-> - `PUSHOVER_API_TOKEN` = PushOver 앱 토큰 (요청 body의 `token` 필드로 전송)
 
 ```bash
 # 헬스체크
@@ -365,7 +353,7 @@ curl -s -X POST "$WORKER_URL/api/v1/messages" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $API_TOKEN" \
   -d '{
-    "user": "'"$PUSHOVER_USER_KEY"'",
+    "user": "$PUSHOVER_USER_KEY",
     "message": "긴급 알림!",
     "title": "URGENT",
     "priority": 2,
@@ -477,43 +465,75 @@ Running 5 tests using 1 worker
 ### D1 Database
 
 ```sql
--- 메시지 테이블
+-- 인증 토큰
+CREATE TABLE api_tokens (
+    token TEXT PRIMARY KEY,
+    user_key TEXT NOT NULL,
+    name TEXT,
+    active INTEGER DEFAULT 1,
+    last_used_at TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- 메시지
 CREATE TABLE messages (
     id TEXT PRIMARY KEY,
-    status TEXT NOT NULL DEFAULT 'pending',
-    title TEXT,
+    user_key TEXT NOT NULL,
     message TEXT NOT NULL,
+    title TEXT,
     priority INTEGER DEFAULT 0,
     sound TEXT DEFAULT 'pushover',
     device TEXT,
-    pushover_receipt TEXT,
-    error TEXT,
-    retry_count INTEGER DEFAULT 0,
-    created_at INTEGER NOT NULL,
-    sent_at INTEGER,
-    date TEXT NOT NULL
+    url TEXT,
+    url_title TEXT,
+    html INTEGER DEFAULT 0,
+    status TEXT DEFAULT 'pending',   -- pending, sent, failed, delivered, acknowledged
+    receipt TEXT,
+    api_token TEXT,
+    sent_at TEXT,
+    delivered_at TEXT,
+    acknowledged_at TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
--- 웹훅 테이블
+-- 웹훅
 CREATE TABLE webhooks (
     id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
+    user_key TEXT NOT NULL,
     url TEXT NOT NULL,
     secret TEXT NOT NULL,
+    events TEXT NOT NULL,   -- "delivered,acknowledged,expired"
     active INTEGER DEFAULT 1,
-    created_at INTEGER NOT NULL
+    last_triggered_at TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
--- 웹훅 이벤트 로그
-CREATE TABLE webhook_events (
+-- 웹훅 전달 기록
+CREATE TABLE webhook_deliveries (
     id TEXT PRIMARY KEY,
     webhook_id TEXT NOT NULL,
-    event_type TEXT NOT NULL,
-    payload TEXT,
-    status TEXT NOT NULL,
-    error TEXT,
-    created_at INTEGER NOT NULL,
-    FOREIGN KEY (webhook_id) REFERENCES webhooks(id)
+    message_id TEXT NOT NULL,
+    event_type TEXT NOT NULL,      -- delivered, acknowledged, expired
+    status TEXT DEFAULT 'pending', -- pending, delivered, failed
+    status_code INTEGER,
+    response_body TEXT,
+    last_retry_at TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- 실패 메시지 (재시도용)
+CREATE TABLE failed_deliveries (
+    id TEXT PRIMARY KEY,
+    message_id TEXT NOT NULL,
+    attempt_count INTEGER DEFAULT 0,
+    last_attempt_at TEXT,
+    error_message TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 ```
 
@@ -526,7 +546,7 @@ CREATE TABLE webhook_events (
 - **Timing-safe comparison**: 서명 검증에 상수시간 비교 사용 (Timing Attack 방지)
 - **HMAC-SHA256**: 웹훅 서명 검증
 - **CORS**: Cross-Origin 요청 제어
-- **Bearer Auth**: API 키 기반 인증
+- **Bearer Auth**: D1 기반 API 토큰 인증
 
 ---
 
@@ -536,37 +556,59 @@ CREATE TABLE webhook_events (
 | ---------- | ------ | ------ |
 | Rust SDK | ✅ 완료 | HTTP 클라이언트, 웹훅 검증 |
 | Rust CLI | ✅ 완료 | send, history 명령어 |
-| Rust Worker | ✅ 완료 | API 서버, 큐 처리, 복구 |
+| Rust Worker | ✅ 완료 | API 서버, 복구 Cron |
 | Dashboard | ✅ 완료 | Next.js 16 UI |
-| Infrastructure | ⚠️ 진행중 | OpenTofu 구현 필요 |
+| Infrastructure | ✅ 완료 | OpenTofu (D1, KV, R2, Cron Trigger) |
 
 ---
 
 ## 🚀 배포
+
+### Infrastructure 배포 (OpenTofu)
+
+```bash
+cd infrastructure
+
+# 초기 설정 (최초 1회)
+mv backend.tf backend.tf.bak
+tofu init -backend=false
+tofu apply -target=cloudflare_r2_bucket.terraform_state
+mv backend.tf.bak backend.tf
+tofu init -reconfigure   # 'yes' to copy state
+
+# 이후 배포
+tofu init
+tofu plan
+tofu apply
+```
+
+**관리 리소스**: D1 Database, KV Namespace, R2 Bucket (state), Cron Trigger
 
 ### Worker 배포
 
 ```bash
 cd crates/worker
 
-# D1 데이터베이스 생성
-wrangler d1 create pushover-db
-
 # 마이그레이션 실행
 wrangler d1 execute pushover-db --file=./migrations/0001_init.sql
+wrangler d1 execute pushover-db --file=./migrations/0002_add_api_token.sql
+wrangler d1 execute pushover-db --file=./migrations/0003_api_tokens.sql
+
+# API 토큰 등록
+wrangler d1 execute pushover-db --command="INSERT INTO api_tokens (token, user_key, name) VALUES ('<your-token>', '<your-pushover-user-key>', 'dashboard');"
 
 # 배포
 wrangler deploy
 ```
 
-**배포 URL**: `https://pushover-worker.<subdomain>.workers.dev`
+**배포 URL**: `https://pushover-worker.cromksy.workers.dev`
 
 ### Dashboard 배포 (Cloudflare Pages)
 
 ```bash
 cd dashboard
-pnpm build
-wrangler pages deploy ./out
+pnpm run pages:build
+pnpm run deploy
 ```
 
 ---
