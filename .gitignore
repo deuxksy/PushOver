@@ -36,6 +36,7 @@ dist/
 
 # Playwright MCP
 .playwright-mcp/
+*.auth-storage-state.json
 
 # Lock files (optional - uncomment if needed)
 # pnpm-lock.yaml

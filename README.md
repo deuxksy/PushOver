@@ -124,16 +124,16 @@ flowchart LR
 
 ## ☁️ Cloudflare 서비스
 
-| 서비스 | 용도 | 비고 |
-| -------- | ------ |------|
-| **Workers** | Serverless API 서버 | Rust/WASM으로 빌드 |
-| **D1** | SQLite 기반 DB | 메시지, 웹훅, 인증 토큰 저장 |
-| **Pages** | 정적 호스팅 | Dashboard 배포용 |
-| **KV** | 키-값 스토어 | 캐시 및 실패 메시지 백업 |
-| **R2** | 오브젝트 스토리지 | Terraform 상태 파일 저장 |
-| **Cron Triggers** | 스케줄러 | Recovery Worker (실패 메시지 재시도, */5 분) |
+| 서비스 | 용도 |
+| -------- | ------ |
+| **Workers** | Serverless API 서버 (Rust/WASM) |
+| **D1** | SQLite 기반 DB (스키마: [`migrations/`](./migrations/)) |
+| **Pages** | 정적 호스팅 (Dashboard) |
+| **KV** | 키-값 스토어 (캐시) |
+| **R2** | 오브젝트 스토리지 (Terraform state) |
+| **Cron Triggers** | 스케줄러 (Recovery Worker, */5분) |
 
-> **인프라 관리**: D1, KV, R2, Cron Trigger는 `infrastructure/` 디렉토리의 **OpenTofu**로 관리. Worker 배포는 `wrangler` 사용.
+> 인프라 관리: D1, KV, R2, Cron Trigger는 `infrastructure/`의 **OpenTofu**로 관리. Worker 배포는 `wrangler` 사용.
 
 ---
 
@@ -143,61 +143,28 @@ flowchart LR
 pushover/
 ├── crates/
 │   ├── sdk/                    # Rust SDK
-│   │   ├── src/
-│   │   │   ├── lib.rs           # 공개 API
-│   │   │   ├── models.rs        # 데이터 모델
-│   │   │   ├── error.rs         # 에러 타입
-│   │   │   ├── http_client.rs  # HTTP 클라이언트
-│   │   │   └── webhook.rs       # 웹훅 검증
-│   │   └── tests/
-│   │
 │   ├── cli/                    # CLI 도구
-│   │   ├── src/
-│   │   │   ├── main.rs          # 진입점
-│   │   │   ├── commands/
-│   │   │   │   ├── send.rs      # 메시지 전송
-│   │   │   │   └── history.rs   # 이력 조회
-│   │   │   └── config.rs        # 설정 관리
-│   │
 │   └── worker/                 # Cloudflare Worker
-│       ├── src/
-│       │   ├── lib.rs           # 진입점 + 라우터
-│       │   ├── routes.rs        # API 라우트 핸들러
-│       │   ├── middleware.rs     # CORS, 인증
-│       │   ├── types.rs         # 요청/응답 타입
-│       │   ├── db.rs            # D1 데이터베이스 리포지토리
-│       │   ├── pushover.rs      # PushOver API 클라이언트
-│       │   ├── crypto.rs        # HMAC 서명 생성/검증
-│       │   ├── recovery.rs      # 실패 메시지 복구
-│       │   └── utils.rs         # 유틸리티
 │       └── wrangler.toml
-│
 ├── dashboard/                  # Next.js 웹 UI
-│   ├── src/
-│   │   ├── app/
-│   │   │   ├── page.tsx         # 메인 페이지
-│   │   │   ├── history/         # 이력 페이지
-│   │   │   └── settings/        # 설정 페이지
-│   │   └── lib/
-│   │       ├── api.ts           # API 클라이언트
-│   │       └── settings.ts      # 설정 관리 (localStorage)
-│   ├── tests/e2e/               # Playwright E2E 테스트
-│   └── package.json
-│
 ├── migrations/                  # D1 마이그레이션
-│   ├── 0001_init.sql
-│   ├── 0002_add_api_token.sql
-│   └── 0003_api_tokens.sql
-│
 ├── infrastructure/              # OpenTofu 인프라
-│   ├── main.tf                  # D1, KV, R2, Cron Trigger
-│   ├── backend.tf               # R2 원격 상태 백엔드
-│   ├── variables.tf             # 변수 정의
-│   ├── outputs.tf               # 출력값
-│   └── terraform.tfvars         # 변수값
-│
 └── docs/                       # 문서
 ```
+
+---
+
+## 🗄️ 데이터베이스
+
+> 스키마 상세: [`migrations/`](./migrations/) SQL 파일 참조
+> 
+**D1 테이블**:
+
+- `api_tokens` - API 인증 토큰
+- `messages` - 메시지 전송 기록
+- `webhooks` - 웹훅 등록 정보
+- `webhook_deliveries` - 웹훅 전송 기록
+- `failed_deliveries` - 실패한 메시지 (재시도용)
 
 ---
 
@@ -205,36 +172,33 @@ pushover/
 
 ### 사전 요구사항
 
+**개발 환경**:
+
+- Rust 1.92.0
+- Node.js v24.14.0
+- pnpm 10.30.3
+
 ```bash
-# Rust
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-
-# mise (SDK 관리)
-mise use -g nodejs
-
-# pnpm
-npm install -g pnpm
-
-# worker-build
+# Cloudflare Workers Rust/WASM 빌드 도구
 cargo install worker-build
 ```
 
 ### 환경변수 설정
 
 ```bash
-# .env 복사 및 설정
 cp .env.example .env
+# .env 파일을 실제 값으로 변경
 ```
 
-**필수 환경변수** (.env 파일):
+**필수 환경변수**:
 
-| 변수명 | 설명 | 발급처 |
-| -------- | ------ | -------- |
-| `CLOUDFLARE_API_TOKEN` | Cloudflare API 토큰 | [Cloudflare Dashboard](https://dash.cloudflare.com/profile/api-tokens) |
-| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare 계정 ID | Cloudflare Dashboard 사이드바 |
-| `PUSHOVER_USER_KEY` | PushOver 사용자 키 | [PushOver](https://pushover.net) |
-| `PUSHOVER_API_TOKEN` | PushOver API 토큰 | PushOver Settings → Applications |
-| `WEBHOOK_SECRET` | 웹훅 서명용 시크릿 | `openssl rand -base64 32` |
+| 변수명 | 발급처 |
+| -------- | -------- |
+| `CLOUDFLARE_API_TOKEN` | [Cloudflare Dashboard](https://dash.cloudflare.com/profile/api-tokens) |
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare Dashboard 사이드바 |
+| `PUSHOVER_USER_KEY` | [PushOver](https://pushover.net) |
+| `PUSHOVER_API_TOKEN` | PushOver Settings → Applications |
+| `PUSHOVER_WEBHOOK_SECRET` | `openssl rand -base64 32` |
 
 ### 설치 및 실행
 
@@ -252,290 +216,44 @@ cd dashboard && pnpm dev
 
 ---
 
-## 📋 기능
+## 🧪 테스트
 
-### Rust SDK (`crates/sdk/`)
-
-```rust
-use pushover_sdk::{PushOverClient, Message, Priority};
-
-let client = PushOverClient::new(user_key, api_token);
-let msg = Message::builder()
-    .message("Hello World")
-    .title("알림")
-    .priority(Priority::High)
-    .build();
-
-let response = client.send(msg).await?;
-```
-
-**기능**:
-
-- ✅ PushOver API 메시지 전송
-- ✅ 메시지 상태 조회
-- ✅ 웹훅 시그니처 검증 (HMAC-SHA256)
-- ✅ Feature flag로 환경 분리 (reqwest/cloudflare-worker)
-
-### Rust CLI (`crates/cli/`)
+### Worker API
 
 ```bash
-# 메시지 전송
-pushover send "Hello World" --title "Test"
-pushover send "긴급" --device iphone --sound siren
-
-# 이력 조회 (Worker API 통해 D1에서 조회)
-pushover history --limit 50
+make test-api           # 기본 실행
+make test-api-verbose   # 상세 출력
 ```
 
-### Rust Worker (`crates/worker/`)
-
-**API 엔드포인트**:
-
-| Method | Path | 설명 |
-| -------- | ------ | ------ |
-| `GET` | `/` | 루트 정보 |
-| `GET` | `/health` | 헬스체크 |
-| `POST` | `/api/v1/messages` | 메시지 전송 |
-| `GET` | `/api/v1/messages` | 메시지 목록 조회 |
-| `GET` | `/api/v1/messages/:receipt/status` | 수신 상태 조회 |
-| `POST` | `/api/v1/webhooks` | PushOver callback 수신 |
-| `POST` | `/api/v1/webhooks/register` | Webhook 등록 |
-| `GET` | `/api/v1/webhooks` | Webhook 목록 조회 |
-| `DELETE` | `/api/v1/webhooks/:id` | Webhook 삭제 |
-
-**기능**:
-
-- ✅ Bearer 토큰 인증 (D1 `api_tokens` 테이블)
-- ✅ CORS 지원
-- ✅ 실패 메시지 복구 (D1 `failed_deliveries` + Cron Trigger)
-- ✅ 웹훅 시그니처 검증 (Timing-safe)
-
-### Worker API 테스트
+### Dashboard (Playwright)
 
 ```bash
-# 1. 테스트 환경설정 파일 생성
-cp .env.test.example .env.test
-# .env.test 파일을 열어 실제 값으로 변경하세요
-
-# 2. 테스트 실행
-make test-api
-
-# Verbose 모드로 실행
-make test-api-verbose
+make dashboard-test-loc   # 로컬 테스트
+make dashboard-test-dev   # dev 환경 테스트
+make dashboard-test-all   # 전체 테스트
 ```
-
-**테스트 항목:**
-
-- ✓ Health Check
-- ✓ 메시지 전송
-- ✓ 메시지 목록 조회
-- ✓ 메시지 수신 상태 조회
-- ✓ 인증 실패 검증
-
-**참고: cURL 예제** (개별 테스트용)
-
-```bash
-# 헬스체크
-curl -s "$CF_WORKER_URL/health"
-
-# 메시지 전송
-curl -s -X POST "$CF_WORKER_URL/api/v1/messages" \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $CF_WORKER_TOKEN" \
-  -d '{
-    "token": "$PUSHOVER_API_TOKEN",
-    "user": "$PUSHOVER_USER_KEY",
-    "message": "Hello from PushOver Worker!",
-    "title": "테스트 알림"
-  }'
-
-# 메시지 목록 조회
-curl -s "$CF_WORKER_URL/api/v1/messages?limit=10" \
-  -H "Authorization: Bearer $CF_WORKER_TOKEN"
-```
-
-### Dashboard E2E 테스트 (Playwright)
-
-```bash
-# Playwright 브라우저 설치 (최초 1회)
-npx playwright install --project=dev
-
-# E2E 테스트 실행 (모든 테스트)
-make dashboard-test-all
-
-# 개별 테스트 실행
-make dashboard-test-loc    # 로컬 테스트
-make dashboard-test-dev    # dev 환경 테스트
-```
-
-**테스트 항목:**
-
-| 테스트 | 설명 |
-| -------- | ------ |
-| Worker 헬스체크 | `/health` 엔드포인 응답 확인 |
-| 메시지 전송 (UI) | 브라우저 UI에서 메시지 전송 |
-| History 조회 | Worker API를 통한 메시지 저장 확인 |
-
-### Next.js Dashboard (`dashboard/`)
-
-**페이지**:
-
-- `/` - 메인 (메시지 전송 모달 + 통계)
-- `/history` - 전송 이력 테이블
-- `/settings` - API 키 설정
-
-**기술 스택**:
-
-- Next.js 16 (App Router)
-- React 19
-- Tailwind CSS 4
-
----
-
-## 🗄️ 데이터베이스 스키마
-
-### D1 Database
-
-```sql
--- 인증 토큰
-CREATE TABLE api_tokens (
-    token TEXT PRIMARY KEY,
-    user_key TEXT NOT NULL,
-    name TEXT,
-    active INTEGER DEFAULT 1,
-    last_used_at TEXT,
-    created_at TEXT NOT NULL DEFAULT (datetime('now')),
-    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-
--- 메시지
-CREATE TABLE messages (
-    id TEXT PRIMARY KEY,
-    user_key TEXT NOT NULL,
-    message TEXT NOT NULL,
-    title TEXT,
-    priority INTEGER DEFAULT 0,
-    sound TEXT DEFAULT 'pushover',
-    device TEXT,
-    url TEXT,
-    url_title TEXT,
-    html INTEGER DEFAULT 0,
-    status TEXT DEFAULT 'pending',   -- pending, sent, failed, delivered, acknowledged
-    receipt TEXT,
-    api_token TEXT,
-    sent_at TEXT,
-    delivered_at TEXT,
-    acknowledged_at TEXT,
-    created_at TEXT NOT NULL DEFAULT (datetime('now')),
-    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-
--- 웹훅
-CREATE TABLE webhooks (
-    id TEXT PRIMARY KEY,
-    user_key TEXT NOT NULL,
-    url TEXT NOT NULL,
-    secret TEXT NOT NULL,
-    events TEXT NOT NULL,   -- "delivered,acknowledged,expired"
-    active INTEGER DEFAULT 1,
-    last_triggered_at TEXT,
-    created_at TEXT NOT NULL DEFAULT (datetime('now')),
-    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-
--- 웹훅 전달 기록
-CREATE TABLE webhook_deliveries (
-    id TEXT PRIMARY KEY,
-    webhook_id TEXT NOT NULL,
-    message_id TEXT NOT NULL,
-    event_type TEXT NOT NULL,      -- delivered, acknowledged, expired
-    status TEXT DEFAULT 'pending', -- pending, delivered, failed
-    status_code INTEGER,
-    response_body TEXT,
-    last_retry_at TEXT,
-    created_at TEXT NOT NULL DEFAULT (datetime('now')),
-    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-
--- 실패 메시지 (재시도용)
-CREATE TABLE failed_deliveries (
-    id TEXT PRIMARY KEY,
-    message_id TEXT NOT NULL,
-    attempt_count INTEGER DEFAULT 0,
-    last_attempt_at TEXT,
-    error_message TEXT,
-    created_at TEXT NOT NULL DEFAULT (datetime('now')),
-    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-```
-
----
-
-## 🔒 보안
-
-**보안 기능**:
-
-- **Timing-safe comparison**: 서명 검증에 상수시간 비교 사용 (Timing Attack 방지)
-- **HMAC-SHA256**: 웹훅 서명 검증
-- **CORS**: Cross-Origin 요청 제어
-- **Bearer Auth**: D1 기반 API 토큰 인증
-
----
-
-## 📊 개발 현황
-
-| 컴포넌트 | 상태 | 비고 |
-| ---------- | ------ | ------ |
-| Rust SDK | ✅ 완료 | HTTP 클라이언트, 웹훅 검증 |
-| Rust CLI | ✅ 완료 | send, history 명령어 |
-| Rust Worker | ✅ 완료 | API 서버, 복구 Cron |
-| Dashboard | ✅ 완료 | Next.js 16 UI |
-| Infrastructure | ✅ 완료 | OpenTofu (D1, KV, R2, Cron Trigger) |
 
 ---
 
 ## 🚀 배포
 
-### Infrastructure 배포 (OpenTofu)
+### Infrastructure (OpenTofu)
 
 ```bash
 cd infrastructure
-
-# 초기 설정 (최초 1회)
-mv backend.tf backend.tf.bak
-tofu init -backend=false
-tofu apply -target=cloudflare_r2_bucket.terraform_state
-mv backend.tf.bak backend.tf
-tofu init -reconfigure   # 'yes' to copy state
-
-# 이후 배포
 tofu init
 tofu plan
 tofu apply
 ```
 
-**관리 리소스**: D1 Database, KV Namespace, R2 Bucket (state), Cron Trigger
-
-### Worker 배포
+### Worker
 
 ```bash
 cd crates/worker
-
-# 마이그레이션 실행
-wrangler d1 execute pushover-db --file=./migrations/0001_init.sql
-wrangler d1 execute pushover-db --file=./migrations/0002_add_api_token.sql
-wrangler d1 execute pushover-db --file=./migrations/0003_api_tokens.sql
-
-# API 토큰 등록
-wrangler d1 execute pushover-db --command="INSERT INTO api_tokens (token, user_key, name) VALUES ('<your-token>', '<your-pushover-user-key>', 'dashboard');"
-
-# 배포
 wrangler deploy
 ```
 
-**배포 URL**: `https://pushover-worker.cromksy.workers.dev`
-
-### Dashboard 배포 (Cloudflare Pages)
+### Dashboard (Cloudflare Pages)
 
 ```bash
 cd dashboard
