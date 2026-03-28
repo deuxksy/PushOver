@@ -32,6 +32,7 @@ dist/
 .omc/
 */.omc/
 */*/.omc/
+.superpowers/
 
 # Playwright MCP
 .playwright-mcp/
