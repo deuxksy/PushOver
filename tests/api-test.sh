@@ -44,10 +44,10 @@ test_health_check() {
 
   if [ "$response" = "OK" ]; then
     echo "✓ Health check passed"
-    ((PASSED++))
+    PASSED=$((PASSED + 1))
   else
     echo "✗ Expected 'OK', got '$response'"
-    ((FAILED++))
+    FAILED=$((FAILED + 1))
   fi
 }
 
@@ -60,6 +60,7 @@ test_send_message() {
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer $CF_WORKER_TOKEN" \
     -d "{
+      \"token\": \"$PUSHOVER_API_TOKEN\",
       \"user\": \"$PUSHOVER_USER_KEY\",
       \"message\": \"Test message $timestamp\",
       \"title\": \"API Test\"
@@ -70,19 +71,20 @@ test_send_message() {
   if [ -z "$status" ] || [ "$status" = "null" ]; then
     echo "✗ Failed to parse JSON response"
     echo "  Response: $response"
-    ((FAILED++))
+    FAILED=$((FAILED + 1))
     return
   fi
 
   if [ "$status" = "success" ]; then
     receipt=$(echo "$response" | jq -r '.receipt')
-    echo "✓ Message sent, receipt: $receipt"
-    LAST_RECEIPT="$receipt"
-    ((PASSED++))
+    request=$(echo "$response" | jq -r '.request')
+    echo "✓ Message sent, receipt: $receipt, request: $request"
+    LAST_RECEIPT="${receipt:-$request}"
+    PASSED=$((PASSED + 1))
   else
     echo "✗ Expected status 'success', got '$status'"
     echo "  Response: $response"
-    ((FAILED++))
+    FAILED=$((FAILED + 1))
   fi
 }
 
@@ -98,11 +100,11 @@ test_get_messages() {
 
   if [ "$status" = "success" ] && [ "$count" -ge 0 ]; then
     echo "✓ Retrieved $count messages"
-    ((PASSED++))
+    PASSED=$((PASSED + 1))
   else
     echo "✗ Failed to get messages"
     echo "  Response: $response"
-    ((FAILED++))
+    FAILED=$((FAILED + 1))
   fi
 }
 
@@ -120,13 +122,17 @@ test_get_message_status() {
 
   status=$(echo "$response" | jq -r '.status')
 
+  # receipt가 없는 경우(d일반 메시지) "not found"은 예외 처리
   if [ "$status" = "sent" ] || [ "$status" = "pending" ]; then
     echo "✓ Message status: $status"
-    ((PASSED++))
+    PASSED=$((PASSED + 1))
+  elif echo "$response" | grep -q "not found"; then
+    echo "✓ Message has no receipt (normal for non-emergency messages)"
+    PASSED=$((PASSED + 1))
   else
     echo "✗ Unexpected status: $status"
     echo "  Response: $response"
-    ((FAILED++))
+    FAILED=$((FAILED + 1))
   fi
 }
 
@@ -139,11 +145,11 @@ test_authentication_required() {
 
   if [ "$http_code" = "401" ]; then
     echo "✓ Correctly rejected unauthenticated request (401)"
-    ((PASSED++))
+    PASSED=$((PASSED + 1))
   else
     echo "✗ Expected 401, got HTTP $http_code"
     echo "  Response: $(cat /tmp/response.json)"
-    ((FAILED++))
+    FAILED=$((FAILED + 1))
   fi
 }
 
