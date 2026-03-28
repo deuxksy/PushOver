@@ -28,7 +28,11 @@ graph TB
 
     subgraph "Cloudflare Edge"
         WORKER[Worker API<br/>Rust/WASM]
+        QUEUE[Queue<br/>메시지 큐]
+        CONSUMER[Consumer<br/>Worker]
+        KV[(KV<br/>캐시/백업)]
         D1[(D1 Database)]
+        R2[(R2<br/>이미지/백업)]
         CRON[Cron Trigger<br/>*/5분]
     end
 
@@ -41,60 +45,89 @@ graph TB
     DASH -->|GET /messages| WORKER
     DASH -->|GET/POST/DELETE /webhooks| WORKER
     EXT -->|POST /webhooks<br/>Callback| WORKER
-    CRON -->|handle_failed_messages| WORKER
+    CRON -->|handle_failed_messages| CONSUMER
 
+    WORKER -->|Token 검증| KV
+    WORKER -->|이미지 업로드| R2
+    WORKER -->|메시지 투입| QUEUE
     WORKER --> D1
-    WORKER -->|Send Message| PO
+    QUEUE -->|메시지 소비| CONSUMER
+    CONSUMER -->|Send Message| PO
+    CONSUMER -->|성공: 저장| D1
+    CONSUMER -->|실패: 백업| KV
+    CRON -->|D1 백업 스냅샷| R2
     PO -->|Delivery Callback| WORKER
 
     style WORKER fill:#f38020,color:#fff
+    style QUEUE fill:#f38020,color:#fff
+    style CONSUMER fill:#f38020,color:#fff
+    style KV fill:#f38020,color:#fff
     style D1 fill:#f38020,color:#fff
+    style R2 fill:#f38020,color:#fff
     style CRON fill:#f38020,color:#fff
 ```
 
-### 메시지 전송 흐름
+### 메시지 전송 흐름 (Queue-First)
 
 ```mermaid
 sequenceDiagram
     participant C as Client
     participant W as Worker API
+    participant KV as KV (Token 캐시)
+    participant Q as Queue
+    participant R2 as R2 Storage
     participant D1 as D1 Database
     participant PO as PushOver API
 
     C->>W: POST /api/v1/messages
-    W->>W: Bearer 토큰 검증 → user_key 획득
-    W->>PO: PushOver API 호출
+    W->>KV: Token 검증 (캐시 조회)
+    alt KV hit
+        KV-->>W: user_key
+    else KV miss
+        W->>D1: Token 조회
+        D1-->>W: user_key
+        W->>KV: 캐시 저장 (TTL 1h)
+    end
+    opt 이미지 첨부 시
+        W->>R2: 이미지 업로드
+        R2-->>W: 이미지 URL
+    end
+    W->>Q: 메시지 투입
+    W-->>C: 202 Accepted {status: queued}
+
+    Q->>CON: 메시지 소비
+    CON->>PO: PushOver API 호출
     alt 성공
-        PO-->>W: 200 OK {receipt}
-        W->>D1: 메시지 저장 (status=sent)
-        W-->>C: {status: success, receipt}
+        PO-->>CON: 200 OK {receipt}
+        CON->>D1: 메시지 저장 (status=sent)
     else 실패
-        PO-->>W: Error
-        W->>D1: 메시지 저장 (status=failed)
-        W->>D1: failed_deliveries 기록
-        W-->>C: 502 {status: error}
+        PO-->>CON: Error
+        CON->>KV: 실패 메시지 백업 (TTL 7d)
+        CON->>D1: failed_deliveries 기록
     end
 ```
 
-### 재시도 메커니즘
+### 재시도 메커니즘 (KV 기반)
 
 ```mermaid
 flowchart TD
-    A[메시지 전송 실패] --> B[D1 failed_deliveries에 기록]
-    B --> C{재시도 횟수 < 3?}
+    A[메시지 전송 실패] --> B[KV에 메시지 본문 백업<br/>TTL 7d]
+    B --> C[D1 failed_deliveries에 기록]
+    C --> D{재시도 횟수 < 3?}
 
-    C -->|Yes| D[Cron Trigger<br/>Recovery Worker]
-    D --> E[PushOver API 재전송]
+    D -->|Yes| E[Cron Trigger<br/>*/5분]
+    E --> F[KV에서 메시지 본문 복원]
+    F --> G[PushOver API 재전송]
 
-    C -->|No| F[최종 실패]
+    D -->|No| H[최종 실패<br/>KV TTL 만료로 자동 정리]
 
-    E --> G{전송 성공?}
-    G -->|Yes| H[D1 상태 업데이트<br/>status=sent]
-    G -->|No| C
+    G --> I{전송 성공?}
+    I -->|Yes| J[D1 상태 업데이트<br/>status=sent<br/>KV 키 삭제]
+    I -->|No| D
 
     style A fill:#ff6b6b
-    style H fill:#51cf66
-    style F fill:#ff6b6b
+    style J fill:#51cf66
+    style H fill:#ff6b6b
 ```
 
 ### 웹훅 처리 흐름
@@ -142,10 +175,11 @@ flowchart LR
 | 서비스 | 용도 |
 | -------- | ------ |
 | **Workers** | Serverless API 서버 (Rust/WASM) |
+| **Queues** | 비동기 메시지 큐 (Producer-Consumer) |
+| **KV** | Token 캐시, Webhook 캐시, 실패 메시지 백업 |
 | **D1** | SQLite 기반 DB (스키마: [`migrations/`](./migrations/)) |
 | **Pages** | 정적 호스팅 (Dashboard) |
-| **KV** | 키-값 스토어 (캐시) |
-| **R2** | 오브젝트 스토리지 (Terraform state) |
+| **R2** | 오브젝트 스토리지 (Terraform state, D1 백업, 메시지 이미지) |
 | **Cron Triggers** | 스케줄러 (Recovery Worker, */5분) |
 
 > 인프라 관리: D1, KV, R2, Cron Trigger는 `infrastructure/`의 **OpenTofu**로 관리. Worker 배포는 `wrangler` 사용.
