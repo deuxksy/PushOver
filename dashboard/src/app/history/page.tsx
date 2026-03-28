@@ -2,24 +2,18 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import type { Message } from '@/lib/api';
+import { pushOverAPI, type Message } from '@/lib/api';
 
 export default function HistoryPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // TODO: Fetch from API
-    setMessages([
-      {
-        id: 'msg_001',
-        message: 'Test message',
-        title: 'Test',
-        status: 'delivered',
-        sent_at: '2024-01-01T00:00:00Z',
-      },
-    ]);
-    setLoading(false);
+    pushOverAPI.getHistory()
+      .then(setMessages)
+      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load messages'))
+      .finally(() => setLoading(false));
   }, []);
 
   return (
