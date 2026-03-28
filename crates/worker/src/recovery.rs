@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use worker::*;
 use crate::db::Db;
 use crate::kv::Kv;
@@ -11,6 +12,31 @@ pub async fn handle_failed_messages(
     env: Env,
     _ctx: ScheduleContext,
 ) -> Result<Response> {
+    // D1 백업 스냅샷 → R2 저장
+    if let Ok(backup_bucket) = env.bucket("BACKUP_R2") {
+        let now = js_sys::Date::new_0();
+        let timestamp = format!(
+            "{:04}{:02}{:02}_{:02}{:02}{:02}",
+            now.get_full_year(),
+            now.get_month() as i32 + 1,
+            now.get_date(),
+            now.get_hours(),
+            now.get_minutes(),
+            now.get_seconds()
+        );
+        let backup_key = format!("d1-backups/{}.json", timestamp);
+
+        if let Ok(db) = Db::from_env(&env) {
+            if let Ok(messages) = db.export_all_messages().await {
+                let data = serde_json::to_vec(&messages).unwrap_or_default();
+                let _ = backup_bucket.put(&backup_key, data)
+                    .custom_metadata(HashMap::from([("type".to_string(), "d1-snapshot".to_string())]))
+                    .execute()
+                    .await;
+            }
+        }
+    }
+
     let db = Db::from_env(&env)?;
     let kv = Kv::new(&env)?;
     let client = PushOverClient::from_env(&env)?;
