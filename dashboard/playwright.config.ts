@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
-  testDir: './tests/e2e',
+  testDir: './tests',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
@@ -15,8 +15,19 @@ export default defineConfig({
 
   projects: [
     {
-      name: 'chromium',
+      name: 'loc',
+      testDir: './tests',
+      testMatch: 'loc.spec.ts',
       use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'dev',
+      testDir: './tests',
+      testMatch: 'dev.spec.ts',
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: 'https://pushover-dashboard.pages.dev',
+      },
     },
   ],
 });

@@ -7,6 +7,7 @@ export interface Settings {
   };
   worker: {
     url: string;
+    token?: string;
     webhookSecret?: string;
   };
   notification: {

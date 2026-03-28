@@ -46,8 +46,8 @@ export class PushOverAPI {
       ...options,
       headers: {
         'Content-Type': 'application/json',
-        ...(settings.pushover?.apiToken && {
-          'Authorization': `Bearer ${settings.pushover.apiToken}`
+        ...(settings.worker?.token && {
+          'Authorization': `Bearer ${settings.worker.token}`
         }),
         ...(settings.worker?.webhookSecret && {
           'X-Webhook-Secret': settings.worker.webhookSecret

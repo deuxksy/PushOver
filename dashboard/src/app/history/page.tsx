@@ -40,6 +40,8 @@ export default function HistoryPage() {
 
           {loading ? (
             <div className="px-6 py-8 text-center text-zinc-500">Loading...</div>
+          ) : error ? (
+            <div className="px-6 py-8 text-center text-red-400">에러: {error}</div>
           ) : messages.length === 0 ? (
             <div className="px-6 py-8 text-center text-zinc-500">No messages found</div>
           ) : (
