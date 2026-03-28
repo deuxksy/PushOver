@@ -13,12 +13,36 @@
 - ✅ Playwright E2E 테스트
 - ✅ Webhook (등록/전송/기록)
 
-### v0.2.0 - Queue & KV 활용
+### v0.2.0 - Queue & KV (Producer-Consumer)
 
-- [ ] **Queues**: 메시지 큐 처리 (비동기 전송)
-- [ ] **KV**: 캐시 최적화 (메시지, 토큰, 웹훅)
-- [ ] 메시지 대기열 처리
-- [ ] 실패 메시지 Queue 기반 재시도
+**아키텍처**: Queue-First + KV Fallback
+
+```
+메시지 전송:
+  Client → POST /messages → Queue 투입 → 202 Accepted
+  Consumer → PushOver API 호출
+    성공: D1 저장 (status=sent)
+    실패: KV 백업 + D1 failed_deliveries
+
+복구:
+  Cron (*/5분) → D1 failed_deliveries 조회 → KV에서 본문 복원 → 재전송
+  3회 초과 시: KV TTL(7d) 만료로 자동 정리
+```
+
+**Queue**:
+- [ ] 메시지 Producer (POST /messages → Queue 투입)
+- [ ] 메시지 Consumer (Queue → PushOver API 호출)
+- [ ] 202 Accepted 즉시 응답
+
+**KV** (3가지 용도):
+- [ ] Token 캐시: `pushover-tokens:{hash}` → user_key (TTL 1h, D1이 원본)
+- [ ] Webhook 캐시: `pushover-webhooks:{user_key}` → webhook 목록 JSON (TTL 5m)
+- [ ] 실패 메시지 백업: `pushover-failed:{message_id}` → 메시지 본문 (TTL 7d)
+
+**D1 변경**:
+- [ ] `messages` 테이블에 `status = "queued"` 추가
+- [ ] `failed_deliveries`에서 메시지 본문 컬럼 제거 (KV로 이관)
+- [ ] Cron Recovery → KV 기반 본문 복원 로직
 
 ### v0.3.0 - Webhook 고도화
 

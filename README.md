@@ -29,22 +29,27 @@ graph TB
     subgraph "Cloudflare Edge"
         WORKER[Worker API<br/>Rust/WASM]
         D1[(D1 Database)]
+        CRON[Cron Trigger<br/>*/5분]
     end
 
     subgraph "External APIs"
         PO[PushOver API]
     end
 
-    CLI -->|HTTP/REST| WORKER
-    DASH -->|HTTP/REST| WORKER
-    EXT -->|Webhook| WORKER
+    CLI -->|POST /messages| WORKER
+    CLI -->|POST /tokens/register| WORKER
+    DASH -->|GET /messages| WORKER
+    DASH -->|GET/POST/DELETE /webhooks| WORKER
+    EXT -->|POST /webhooks<br/>Callback| WORKER
+    CRON -->|handle_failed_messages| WORKER
 
     WORKER --> D1
     WORKER -->|Send Message| PO
-    PO -->|Callback| WORKER
+    PO -->|Delivery Callback| WORKER
 
     style WORKER fill:#f38020,color:#fff
     style D1 fill:#f38020,color:#fff
+    style CRON fill:#f38020,color:#fff
 ```
 
 ### 메시지 전송 흐름
