@@ -90,11 +90,9 @@ resource "cloudflare_queue" "messages" {
 # ============================================
 # R2 Bucket (Terraform State Storage)
 # ============================================
-resource "cloudflare_r2_bucket" "terraform_state" {
-  account_id = var.account_id
-  name       = "pushover-terraform-state"
-  location   = "WNAM"
-}
+# state 버킷은 Terraform이 자신의 state를 저장하는 곳
+# 자기 자신을 관리하면 destroy 시 state 유실 → 수동 관리
+# 생성: wrangler r2 bucket create pushover-terraform-state --location WNAM
 
 # ============================================
 # Cron Trigger (Recovery Worker)

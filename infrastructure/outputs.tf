@@ -22,11 +22,6 @@ output "account_id" {
   value       = var.account_id
 }
 
-output "r2_bucket_name" {
-  description = "R2 Bucket Name for Terraform State"
-  value       = cloudflare_r2_bucket.terraform_state.name
-}
-
 output "worker_script_name" {
   description = "Worker Script Name"
   value       = var.worker_name
