@@ -27,11 +27,6 @@ output "r2_bucket_name" {
   value       = cloudflare_r2_bucket.terraform_state.name
 }
 
-output "cron_trigger_schedules" {
-  description = "Cron Trigger Schedules"
-  value       = cloudflare_workers_cron_trigger.recovery.schedules
-}
-
 output "worker_script_name" {
   description = "Worker Script Name"
   value       = var.worker_name

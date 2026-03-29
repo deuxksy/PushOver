@@ -11,6 +11,7 @@ endif
       build build-dashboard build-worker \
       check lint \
       deploy deploy-dashboard deploy-worker \
+      clean-r2 \
       destroy-all destroy-cloud destroy-dashboard destroy-worker \
       test test-sdk test-cli test-worker test-worker-verbose test-dashboard-loc test-dashboard-dev test-dashboard-all \
       dev dev-dashboard dev-worker
@@ -30,13 +31,13 @@ plan:
 	@cd infrastructure && tofu plan
 apply:
 	@echo "Applying infrastructure changes..."
-	@cd infrastructure && tofu apply
+	@cd infrastructure && tofu apply -auto-approve
 output:
 	@echo "Showing infrastructure outputs..."
 	@cd infrastructure && tofu output
 destroy:
 	@echo "Destroying all infrastructure (D1, KV, R2, Queues, Cron)..."
-	@cd infrastructure && tofu destroy
+	@cd infrastructure && tofu destroy -auto-approve
 
 # ── Migration: DB 마이그레이션 (Wrangler D1) ──
 # migrations/ 자동 탐색, d1_migrations 테이블로 이력 관리
@@ -154,14 +155,41 @@ deploy-worker:
 	@echo "Deploying Worker to Cloudflare Workers..."
 	@cd crates/worker && wrangler deploy
 
-# ── Destroy: 삭제 (순서: Pages,Worker → infra) ──
-# destroy-all    전체 삭제 (Pages,Worker → infra)
-# destroy        인프라만 삭제 (D1, KV, R2, Queues, Cron)
+# ── R2 Cleanup: R2 버킷 오브젝트 삭제 ──────
+# clean-r2   pushover-images, pushover-backups 버킷 비우기
+#             (terraform_state 제외 — state 파일 보존)
+
+R2_BUCKETS = pushover-images pushover-backups
+
+clean-r2:
+	@echo "Emptying R2 buckets..."
+	@for bucket in $(R2_BUCKETS); do \
+		echo "  Cleaning $$bucket..."; \
+		keys=$$(curl -sf "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/r2/buckets/$$bucket/objects" \
+			-H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+			| jq -r '.result[].key // empty'); \
+		if [ -n "$$keys" ]; then \
+			total=$$(echo "$$keys" | wc -l | tr -d ' '); \
+			echo "    Found $$total objects"; \
+			echo "$$keys" | while read key; do \
+				encoded=$$(python3 -c "import urllib.parse; print(urllib.parse.quote('$$key', safe=''))"); \
+				curl -sf -X DELETE "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/r2/buckets/$$bucket/objects/$$encoded" \
+					-H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" > /dev/null; \
+			done; \
+			echo "    Done"; \
+		else \
+			echo "    (empty)"; \
+		fi; \
+	done
+
+# ── Destroy: 삭제 (순서: Pages,Worker → R2 cleanup → infra) ──
+# destroy-all    전체 삭제 (Pages,Worker → R2 cleanup → infra)
+# destroy        인프라만 삭제 (D1, KV, R2, Queues)
 # destroy-cloud  Pages,Worker만 삭제
 # destroy-dashboard Cloudflare Pages 프로젝트 삭제
 # destroy-worker Cloudflare Worker 삭제
 
-destroy-all: destroy-cloud destroy
+destroy-all: destroy-cloud clean-r2 destroy
 destroy-cloud: destroy-dashboard destroy-worker
 destroy-dashboard:
 	@echo "Deleting Dashboard (Cloudflare Pages)..."

@@ -7,12 +7,12 @@ main = "build/worker/shim.mjs"
 [[d1_databases]]
 binding = "DB"
 database_name = "pushover-db"
-database_id = "b8714aa2-58ce-40c7-873f-b8b94e2d53c3"
+database_id = "ccc5cb14-6659-4b58-a7a4-44c13d1f14d4"
 
 # KV Namespace (token cache, webhook cache, failed message backup)
 [[kv_namespaces]]
 binding = "KV"
-id = "5715dcaacdce43c08a9c3ea1723942d0"
+id = "4c21f224f5aa40a3b16d14b1449e8ff7"
 
 # Queue (Producer-Consumer)
 [[queues.producers]]
@@ -40,10 +40,9 @@ bucket_name = "pushover-backups"
 PUSHOVER_API_URL = "https://api.pushover.net"
 PUSHOVER_WEBHOOK_SECRET = "C4VZclx+sZDWEBW9Qq0nvROE3asqkMLWOzP8CiWlF5s="
 
-# Cron Triggers are# Cron Triggers are managed by Terraform
-# See: infrastructure/main.tf - cloudflare_workers_cron_trigger.recovery
-# Schedules: */5 * * * * (every 5 minutes)# To modify schedule,# Update infrastructure/main.tf and# cloudflare_workers_cron_trigger.recovery
-# schedules = [{ cron = "*/5 * * * *" }] }]
+# Cron Triggers (managed by wrangler)
+[triggers]
+crons = ["*/5 * * * *"]
 
 # Build configuration
 [build]

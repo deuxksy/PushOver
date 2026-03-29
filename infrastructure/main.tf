@@ -99,12 +99,5 @@ resource "cloudflare_r2_bucket" "terraform_state" {
 # ============================================
 # Cron Trigger (Recovery Worker)
 # ============================================
-# Runs every 5 minutes to process failed messages
-resource "cloudflare_workers_cron_trigger" "recovery" {
-  account_id  = var.account_id
-  script_name = var.worker_name
-
-  schedules = [
-    "*/5 * * * *"
-  ]
-}
+# Cron Trigger는 wrangler.toml에서 관리
+# Worker 배포 시 자동으로 설정됨 (triggers.crons)
