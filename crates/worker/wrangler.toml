@@ -7,12 +7,12 @@ main = "build/worker/shim.mjs"
 [[d1_databases]]
 binding = "DB"
 database_name = "pushover-db"
-database_id = "b6dfaea1-c073-4413-a5a6-540f65dd677b"
+database_id = "6d083871-b472-4a5f-86c7-1116fb649a8b"
 
 # KV Namespace (token cache, webhook cache, failed message backup)
 [[kv_namespaces]]
 binding = "KV"
-id = "d25881aa8ff04b7295fcaa5433bfb0aa"
+id = "1adfa09aef3249e9b02b677971151f7d"
 
 # Queue (Producer-Consumer)
 [[queues.producers]]

@@ -129,7 +129,7 @@ clean:
 # build-dashboard Next.js → Cloudflare Pages 빌드 산출물
 # build-worker  Rust → WASM 컴파일
 
-build: build-dashboard build-worker
+build: build-worker build-dashboard
 build-dashboard:
 	@echo "Building Dashboard (Next.js)..."
 	@cd dashboard && pnpm build
