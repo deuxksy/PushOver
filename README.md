@@ -42,6 +42,10 @@ graph TB
         PO[PushOver API]
     end
 
+    subgraph "CI/CD"
+        GHA[GitHub Actions<br/>D1 Backup<br/>매일 18:00 UTC]
+    end
+
     CLI -->|POST /messages| HANDLER
     CLI -->|POST /tokens/register| HANDLER
     DASH -->|GET /messages| HANDLER
@@ -57,12 +61,13 @@ graph TB
     CONSUMER -->|성공: 저장| D1
     CONSUMER -->|실패: 백업| KV
     CRON -->|failed 메시지 복구| CONSUMER
-    CRON -->|D1 백업 스냅샷| R2
+    GHA -->|D1 Full Export → R2| R2
     PO -->|Delivery Callback| HANDLER
 
     style HANDLER fill:#f38020,color:#fff
     style CONSUMER fill:#f38020,color:#fff
     style CRON fill:#f38020,color:#fff
+    style GHA fill:#2088ff,color:#fff
     style QUEUE fill:#f5a623,color:#fff
     style KV fill:#f5a623,color:#fff
     style D1 fill:#f5a623,color:#fff
@@ -178,10 +183,10 @@ flowchart LR
 | 서비스 | 용도 | 관리 도구 |
 | -------- | ------ | ---------- |
 | **Workers** | Serverless API 서버 (Rust/WASM) | Wrangler |
+| **Pages** | 정적 호스팅 (Dashboard) | Wrangler |
 | **Queues** | 비동기 메시지 큐 (Producer-Consumer) | OpenTofu |
 | **KV** | Token 캐시, Webhook 캐시, 실패 메시지 백업 | OpenTofu |
 | **D1** | SQLite 기반 DB (스키마: [`migrations/`](./migrations/)) | OpenTofu |
-| **Pages** | 정적 호스팅 (Dashboard) | Wrangler |
 | **R2** | 오브젝트 스토리지 (Terraform state, D1 백업, 메시지 이미지) | OpenTofu |
 | **Cron Triggers** | 스케줄러 (Recovery Worker, */5분) | OpenTofu |
 
@@ -206,8 +211,10 @@ pushover/
 
 ## 🗄️ 데이터베이스
 
-> 스키마 상세: [`migrations/`](./migrations/) SQL 파일 참조
->
+### 스키마
+
+> 상세: [`migrations/`](./migrations/) SQL 파일 참조
+
 **D1 테이블**:
 
 - `api_tokens` - API 인증 토큰
@@ -215,6 +222,35 @@ pushover/
 - `webhooks` - 웹훅 등록 정보
 - `webhook_deliveries` - 웹훅 전송 기록
 - `failed_deliveries` - 실패한 메시지 (재시도용)
+
+### 백업
+
+```mermaid
+flowchart LR
+    CRON[Cron<br/>매일 18:00 UTC] --> GHA[GitHub Actions]
+    GHA -->|wrangler d1 export| SQL[SQL Dump]
+    SQL -->|wrangler r2 object put| R2[(R2 Bucket<br/>pushover-backups)]
+    R2 -->|7일 초과| DEL[자동 삭제]
+
+    style GHA fill:#2088ff,color:#fff
+    style R2 fill:#f5a623,color:#fff
+```
+
+| 항목 | 내용 |
+| ------ | ------ |
+| **워크플로우** | `.github/workflows/d1-backup.yml` |
+| **주기** | 매일 18:00 UTC (한국 03:00) + `workflow_dispatch` 수동 실행 |
+| **방식** | `wrangler d1 export` → 전체 SQL dump |
+| **저장소** | R2 `pushover-backups/d1-full-backup/` |
+| **보존** | 7일 (초과 시 자동 삭제) |
+
+### 복구
+
+| 항목 | 내용 |
+| ------ | ------ |
+| **방식** | `wrangler d1 execute --file=backup.sql` |
+| **로컬** | `make db-restore-local file=backups/xxx.sql` |
+| **원격** | `make db-restore file=backups/xxx.sql` |
 
 ---
 
@@ -254,10 +290,14 @@ graph LR
     E --> G[⑦ 배포<br/>make deploy]
     G --> H[⑧ 테스트<br/>make test]
     E --> I[⑨ 로컬 개발<br/>make dev]
+    G --> J[⑩ 백업<br/>make db-backup]
+    J --> K[⑪ 복구<br/>make db-restore]
 
     style A fill:#f38020,color:#fff
     style E fill:#f38020,color:#fff
     style G fill:#f38020,color:#fff
+    style J fill:#2088ff,color:#fff
+    style K fill:#2088ff,color:#fff
 ```
 
 | # | 단계 | make 타겟 | 설명 |
@@ -271,6 +311,8 @@ graph LR
 | ⑦ | 배포 | `make deploy` | Cloudflare Pages + Workers 배포 |
 | ⑧ | 테스트 | `make test` | SDK → CLI → Worker → Dashboard |
 | ⑨ | 로컬 개발 | `make dev` | wrangler dev + Next.js dev 서버 |
+| ⑩ | 백업 | `make db-backup` | D1 전체 SQL dump |
+| ⑪ | 복구 | `make db-restore file=...` | SQL dump → D1 복구 |
 
 ---
 

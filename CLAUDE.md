@@ -1,6 +1,6 @@
 # AI Global Rules
 
-PushOver Wrapper 를 만든다 [PushOver API](https://pushover.net/api) 와 [CloudFlare](https://cloudflare.com/) 이용해서.
+PushOver Wrapper 를 만든다 [PushOver API](https://pushover.net/api) 와 [CloudFlare](https://cloudflare.com/) 를 활용한다.
 
 ## 🗣️ Language & Communication
 
@@ -12,7 +12,7 @@ PushOver Wrapper 를 만든다 [PushOver API](https://pushover.net/api) 와 [Clo
 
 ## 💻Coding Standards
 
-- **test**: make 로 통합 관리 하고 각 모듈별로 test 구현한다.
+- **TDD**: make 로 통합 관리 하고 각 모듈별로 test 구현한다.
 - **Reference**: **Always use Context7 MCP when I need library/API documentation, code generation, setup or configuration steps without me having to explicitly ask.**
 - **일관성(Consistency)**: 기존 프로젝트의 코딩 스타일(들여쓰기, 네이밍 컨벤션, 패턴)을 최우선으로 준수합니다.
 - **주석**: *왜(Why)* 그렇게 작성되었는지에 집중합니다. 과한 주석보다는 깔끔한 code 가 좋다.
@@ -54,8 +54,8 @@ PushOver Wrapper 를 만든다 [PushOver API](https://pushover.net/api) 와 [Clo
 
 ## 📂 Project Structure
 
-```
-PushOver/                      # 프로젝트 루트 — 공통 문서(Makefile, *.md)만 위치, 어떤 SDK도 루트를 독점하지 않음
+```bash
+PushOver/                     # 프로젝트 루트 — 공통 문서(Makefile, *.md)만 위치, 어떤 SDK도 루트를 독점하지 않음
 ├── Makefile                  # 전체 빌드/테스트 orchestration
 ├── CLAUDE.md                 # AI 지침
 ├── crates/                   # Rust workspace
@@ -75,7 +75,7 @@ PushOver/                      # 프로젝트 루트 — 공통 문서(Makefile,
 
 ### 구조 규칙
 
-- **프로젝트 루트는 중립 지대** — 공통 문서(Makefile, *.md, .gitignore)만 위치, 어떤 SDK도 루트를 독점하지 않음
+- **프로젝트 루트는 중립 지대** — 공통 문서(Makefile, *.md, .gitignore)만 위치, 어떤 SDK도 루트를 사용 하지 않음
 - **`package.json`은 `dashboard/`, `crates/worker/` 에만 허용** — 루트에 Node.js package.json 생성 금지 (Next.js module resolver 오염 방지)
 - **`Cargo.toml`은 `crates/` 에만 위치** — Rust workspace 루트는 `crates/Cargo.toml`
 - **배포 플랫폼은 Cloudflare Pages/Workers만 사용** — Vercel 플랫폼 미사용
