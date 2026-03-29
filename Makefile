@@ -159,24 +159,18 @@ deploy-worker:
 # clean-r2   pushover-images, pushover-backups 버킷 비우기
 #             (terraform_state 제외 — state 파일 보존)
 
-R2_BUCKETS = pushover-images pushover-backups
+R2_BUCKETS    = pushover-images pushover-backups
+R2_ENDPOINT   = https://${CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com
+R2_REGION     = auto
 
 clean-r2:
-	@echo "Emptying R2 buckets..."
+	@echo "Emptying R2 buckets via S3 API..."
 	@for bucket in $(R2_BUCKETS); do \
 		echo "  Cleaning $$bucket..."; \
-		keys=$$(curl -sf "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/r2/buckets/$$bucket/objects" \
-			-H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
-			| jq -r '.result[].key // empty'); \
-		if [ -n "$$keys" ]; then \
-			total=$$(echo "$$keys" | wc -l | tr -d ' '); \
-			echo "    Found $$total objects"; \
-			echo "$$keys" | while read key; do \
-				encoded=$$(python3 -c "import urllib.parse; print(urllib.parse.quote('$$key', safe=''))"); \
-				curl -sf -X DELETE "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/r2/buckets/$$bucket/objects/$$encoded" \
-					-H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" > /dev/null; \
-			done; \
-			echo "    Done"; \
+		count=$$(aws s3 ls s3://$$bucket/ --endpoint-url $(R2_ENDPOINT) --region $(R2_REGION) 2>/dev/null | wc -l | tr -d ' '); \
+		if [ "$$count" -gt 0 ]; then \
+			echo "    Found $$count prefixes, deleting all objects..."; \
+			aws s3 rm s3://$$bucket/ --recursive --endpoint-url $(R2_ENDPOINT) --region $(R2_REGION); \
 		else \
 			echo "    (empty)"; \
 		fi; \
