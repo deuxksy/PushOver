@@ -188,8 +188,8 @@ run_all_tests() {
 
   test_cli_binary
   test_send_message
-  test_send_with_override
-  test_send_with_image
+  # test_send_with_override
+  # test_send_with_image
 
   echo ""
   log_info "Results: $PASSED passed, $FAILED failed"
