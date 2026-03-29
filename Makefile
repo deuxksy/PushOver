@@ -208,7 +208,7 @@ destroy-worker:
 # test-dashboard-dev  Dashboard 개발 서버 대상 테스트
 # test-dashboard-all  Dashboard 전체 테스트
 
-test: test-sdk test-cli test-worker test-dashboard-loc
+test: test-sdk test-cli test-worker test-dashboard-dev
 test-sdk:
 	@echo "Running Rust SDK tests..."
 	@cd crates && TEST_NAME=test-sdk cargo test -p pushover-sdk
