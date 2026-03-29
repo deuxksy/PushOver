@@ -24,45 +24,49 @@ graph TB
         EXT[External Services]
     end
 
-    subgraph "Cloudflare Edge"
-        WORKER[Worker API<br/>Rust/WASM]
-        QUEUE[Queue<br/>메시지 큐]
-        CONSUMER[Consumer<br/>Worker]
-        KV[(KV<br/>캐시/백업)]
-        D1[(D1 Database)]
-        R2[(R2<br/>이미지/백업)]
-        CRON[Cron Trigger<br/>*/5분]
+    subgraph "Cloudflare Worker (단일 Worker)"
+        direction TB
+        HANDLER[HTTP Handler<br/>API Routes]
+        CONSUMER[Queue Consumer<br/>메시지 처리]
+        CRON[Cron Handler<br/>*/5분 복구]
+    end
+
+    subgraph "Cloudflare Storage"
+        QUEUE[(Queue<br/>메시지 큐)]
+        KV[(KV<br/>Token 캐시/실패 백업)]
+        D1[(D1 Database<br/>메시지/웹훅)]
+        R2[(R2<br/>이미지/D1 백업)]
     end
 
     subgraph "External APIs"
         PO[PushOver API]
     end
 
-    CLI -->|POST /messages| WORKER
-    CLI -->|POST /tokens/register| WORKER
-    DASH -->|GET /messages| WORKER
-    DASH -->|GET/POST/DELETE /webhooks| WORKER
-    EXT -->|POST /webhooks<br/>Callback| WORKER
-    CRON -->|handle_failed_messages| CONSUMER
+    CLI -->|POST /messages| HANDLER
+    CLI -->|POST /tokens/register| HANDLER
+    DASH -->|GET /messages| HANDLER
+    DASH -->|GET/POST/DELETE /webhooks| HANDLER
+    EXT -->|POST /webhooks<br/>Callback| HANDLER
 
-    WORKER -->|Token 검증| KV
-    WORKER -->|이미지 업로드| R2
-    WORKER -->|메시지 투입| QUEUE
-    WORKER --> D1
+    HANDLER -->|Token 검증| KV
+    HANDLER -->|이미지 업로드| R2
+    HANDLER -->|메시지 투입| QUEUE
+    HANDLER --> D1
     QUEUE -->|메시지 소비| CONSUMER
     CONSUMER -->|Send Message| PO
     CONSUMER -->|성공: 저장| D1
     CONSUMER -->|실패: 백업| KV
+    CRON -->|failed 메시지 복구| CONSUMER
     CRON -->|D1 백업 스냅샷| R2
-    PO -->|Delivery Callback| WORKER
+    PO -->|Delivery Callback| HANDLER
 
-    style WORKER fill:#f38020,color:#fff
-    style QUEUE fill:#f38020,color:#fff
+    style HANDLER fill:#f38020,color:#fff
     style CONSUMER fill:#f38020,color:#fff
-    style KV fill:#f38020,color:#fff
-    style D1 fill:#f38020,color:#fff
-    style R2 fill:#f38020,color:#fff
     style CRON fill:#f38020,color:#fff
+    style QUEUE fill:#f5a623,color:#fff
+    style KV fill:#f5a623,color:#fff
+    style D1 fill:#f5a623,color:#fff
+    style R2 fill:#f5a623,color:#fff
 ```
 
 ### 메시지 전송 흐름 (Queue-First)
@@ -70,11 +74,12 @@ graph TB
 ```mermaid
 sequenceDiagram
     participant C as Client
-    participant W as Worker API
+    participant W as Worker (HTTP Handler)
     participant KV as KV (Token 캐시)
     participant Q as Queue
     participant R2 as R2 Storage
     participant D1 as D1 Database
+    participant CON as Worker (Queue Consumer)
     participant PO as PushOver API
 
     C->>W: POST /api/v1/messages
@@ -105,23 +110,23 @@ sequenceDiagram
     end
 ```
 
-### 재시도 메커니즘 (KV 기반)
+### 재시도 메커니즘 (Cron + KV)
 
 ```mermaid
 flowchart TD
-    A[메시지 전송 실패] --> B[KV에 메시지 본문 백업<br/>TTL 7d]
-    B --> C[D1 failed_deliveries에 기록]
-    C --> D{재시도 횟수 < 3?}
+    A[Queue Consumer: 전송 실패] --> B[KV에 메시지 백업<br/>pushover-failed:{id}<br/>TTL 7d]
+    B --> C[D1 failed_deliveries 기록<br/>retry_count++]
+    C --> D{retry_count < 3?}
 
-    D -->|Yes| E[Cron Trigger<br/>*/5분]
+    D -->|Yes| E[Cron Handler<br/>*/5분 실행]
     E --> F[KV에서 메시지 본문 복원]
-    F --> G[PushOver API 재전송]
+    F --> G[Queue Consumer → PushOver 재전송]
 
     D -->|No| H[최종 실패<br/>KV TTL 만료로 자동 정리]
 
     G --> I{전송 성공?}
-    I -->|Yes| J[D1 상태 업데이트<br/>status=sent<br/>KV 키 삭제]
-    I -->|No| D
+    I -->|Yes| J[D1 status=sent 업데이트<br/>KV 백업 키 삭제]
+    I -->|No| C
 
     style A fill:#ff6b6b
     style J fill:#51cf66
