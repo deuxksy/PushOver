@@ -211,25 +211,25 @@ destroy-worker:
 test: test-sdk test-cli test-worker test-dashboard-loc
 test-sdk:
 	@echo "Running Rust SDK tests..."
-	@cd crates && cargo test -p pushover-sdk
+	@cd crates && TEST_NAME=test-sdk cargo test -p pushover-sdk
 test-cli:
 	@echo "Running CLI integration tests..."
-	@bash tests/cli-test.sh
+	@TEST_NAME=test-cli bash tests/cli-test.sh
 test-worker:
 	@echo "Running Worker API tests..."
-	@bash tests/api-test.sh
+	@TEST_NAME=test-worker bash tests/api-test.sh
 test-worker-verbose:
 	@echo "Running Worker API tests (verbose)..."
-	@VERBOSE=true bash tests/api-test.sh
+	@TEST_NAME=test-worker-verbose VERBOSE=true bash tests/api-test.sh
 test-dashboard-loc:
 	@echo "Running Dashboard local tests..."
-	@cd dashboard && pnpm test:loc
+	@cd dashboard && TEST_NAME=test-dashboard-loc pnpm test:loc
 test-dashboard-dev:
 	@echo "Running Dashboard dev tests..."
-	@cd dashboard && pnpm test:dev
+	@cd dashboard && TEST_NAME=test-dashboard-dev pnpm test:dev
 test-dashboard-all:
 	@echo "Running all Dashboard tests..."
-	@cd dashboard && pnpm test:all
+	@cd dashboard && TEST_NAME=test-dashboard-all pnpm test:all
 
 # ── Dev: 로컬 개발 서버 (Cloudflare 에뮬레이션) ──
 # dev            전체 개발 서버 실행

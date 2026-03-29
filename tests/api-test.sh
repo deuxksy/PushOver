@@ -71,7 +71,7 @@ test_send_message() {
         \"token\": \"$PUSHOVER_API_TOKEN\",
         \"user\": \"$PUSHOVER_USER_KEY\",
         \"message\": \"Test message $timestamp\",
-        \"title\": \"API Test\",
+        \"title\": \"${TEST_NAME:-test-worker}\",
         \"image\": \"$IMAGE_B64\"
       }")
   else
@@ -82,7 +82,7 @@ test_send_message() {
         \"token\": \"$PUSHOVER_API_TOKEN\",
         \"user\": \"$PUSHOVER_USER_KEY\",
         \"message\": \"Test message $timestamp\",
-        \"title\": \"API Test\"
+        \"title\": \"${TEST_NAME:-test-worker}\"
       }")
   fi
 

@@ -109,7 +109,7 @@ test_send_message() {
   write_test_config
 
   timestamp=$(date +%s)
-  output=$("$CLI_BIN" send "CLI test $timestamp" --title "CLI Test" 2>&1)
+  output=$("$CLI_BIN" send "CLI test $timestamp" --title "${TEST_NAME:-test-cli}" 2>&1)
   exit_code=$?
 
   restore_config
@@ -133,7 +133,7 @@ test_send_with_override() {
 
   timestamp=$(date +%s)
   output=$("$CLI_BIN" send "CLI override test $timestamp" \
-    --title "Override Test" \
+    --title "${TEST_NAME:-test-cli} override" \
     --user "$PUSHOVER_USER_KEY" \
     --token "$PUSHOVER_API_TOKEN" 2>&1)
   exit_code=$?
@@ -164,7 +164,7 @@ test_send_with_image() {
 
   timestamp=$(date +%s)
   output=$("$CLI_BIN" send "CLI image test $timestamp" \
-    --title "Image Test" \
+    --title "${TEST_NAME:-test-cli} image" \
     --image tests/sample.jpg 2>&1)
   exit_code=$?
 
