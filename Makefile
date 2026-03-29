@@ -154,10 +154,10 @@ deploy-worker:
 	@echo "Deploying Worker to Cloudflare Workers..."
 	@cd crates/worker && wrangler deploy
 
-# ── Destroy: 삭제 (순서: worker/pages → infra) ──
-# destroy-all    전체 삭제 (worker/pages → infra)
+# ── Destroy: 삭제 (순서: Pages,Worker → infra) ──
+# destroy-all    전체 삭제 (Pages,Worker → infra)
 # destroy        인프라만 삭제 (D1, KV, R2, Queues, Cron)
-# destroy-cloud  Worker/Pages만 삭제
+# destroy-cloud  Pages,Worker만 삭제
 # destroy-dashboard Cloudflare Pages 프로젝트 삭제
 # destroy-worker Cloudflare Worker 삭제
 
