@@ -36,19 +36,5 @@ jobs:
         run: |
           wrangler r2 object put pushover-backups/d1-full-backup/${BACKUP_FILE} --file=${BACKUP_FILE} --remote
 
-      - name: Cleanup old backups (7-day retention)
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          CUTOFF=$(date -u -d '7 days ago' +%Y%m%d)
-          echo "Deleting backups older than $CUTOFF"
-          OBJECTS=$(wrangler r2 object list pushover-backups --prefix d1-full-backup/ --json 2>/dev/null || echo '[]')
-          echo "$OBJECTS" | jq -r '.[].key // empty' | while read key; do
-            DATE_PART=$(echo "$key" | grep -oP '\d{8}' | head -1)
-            if [ -n "$DATE_PART" ] && [ "$DATE_PART" -lt "$CUTOFF" ]; then
-              echo "  Deleting: $key"
-              wrangler r2 object delete "pushover-backups/$key" --force --remote
-            fi
-          done
-          echo "Cleanup done"
+      # R2 Lifecycle Rule이 7일 초과 백업 자동 삭제
+      # 설정: wrangler r2 bucket lifecycle add pushover-backups d1-backup-retention d1-full-backup/ --expire-days 7 --force
