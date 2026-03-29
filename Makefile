@@ -1,4 +1,4 @@
-.PHONY: init plan apply output \
+.PHONY: init plan apply output destroy \
       migrate migrate-create migrate-local db-console \
       db-backup db-backup-local db-restore db-restore-local \
       setup dashboard-install setup-crates \
@@ -6,6 +6,7 @@
       build build-dashboard build-worker \
       check lint \
       deploy deploy-dashboard deploy-worker \
+      destroy-cloud destroy-dashboard destroy-worker \
       test test-sdk test-cli test-worker test-worker-verbose test-dashboard-loc test-dashboard-dev test-dashboard-all \
       dev dev-dashboard dev-worker
 
@@ -14,6 +15,7 @@
 # plan    변경사항 미리보기 (dry-run)
 # apply   인프라 변경 적용
 # output  리소스 ID/값 추출
+# destroy 인프라 전체 삭제 (D1, KV, R2, Queues, Cron)
 
 init:
 	@echo "Initializing OpenTofu backend..."
@@ -27,6 +29,9 @@ apply:
 output:
 	@echo "Showing infrastructure outputs..."
 	@cd infrastructure && tofu output
+destroy:
+	@echo "Destroying all infrastructure (D1, KV, R2, Queues, Cron)..."
+	@cd infrastructure && tofu destroy
 
 # ── Migration: DB 마이그레이션 (Wrangler D1) ──
 # migrations/ 자동 탐색, d1_migrations 테이블로 이력 관리
@@ -143,6 +148,19 @@ deploy-dashboard:
 deploy-worker:
 	@echo "Deploying Worker to Cloudflare Workers..."
 	@cd crates/worker && wrangler deploy
+
+# ── Destroy: 삭제 (Cloudflare Workers/Pages) ──
+# destroy-cloud          전체 삭제 (dashboard + worker)
+# destroy-dashboard      Cloudflare Pages 프로젝트 삭제
+# destroy-worker         Cloudflare Worker 삭제
+
+destroy-cloud: destroy-dashboard destroy-worker
+destroy-dashboard:
+	@echo "Deleting Dashboard (Cloudflare Pages)..."
+	@wrangler pages project delete pushover-dashboard
+destroy-worker:
+	@echo "Deleting Worker (Cloudflare Workers)..."
+	@cd crates/worker && wrangler delete
 
 # ── Test: 테스트 ──────────────────────────
 # test               전체 테스트 (sdk + cli + worker + dashboard)
