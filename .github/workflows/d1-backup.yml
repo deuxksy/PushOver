@@ -34,7 +34,7 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          wrangler r2 object put pushover-backups/d1-full-backup/${BACKUP_FILE} --file=${BACKUP_FILE}
+          wrangler r2 object put pushover-backups/d1-full-backup/${BACKUP_FILE} --file=${BACKUP_FILE} --remote
 
       - name: Cleanup old backups (7-day retention)
         env:
