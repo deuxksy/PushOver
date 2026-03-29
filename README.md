@@ -196,13 +196,12 @@ flowchart LR
 flowchart LR
     A[① 백업<br/>make db-backup] --> B[② 삭제<br/>make destroy-all]
     B --> C[③ 재생성<br/>make init/plan/apply]
-    C --> D[④ 마이그레이션<br/>make migrate]
-    D --> E[⑤ 데이터 복구<br/>make db-restore]
-    E --> F[⑥ 배포<br/>make deploy]
+    C --> D[④ 복구<br/>make db-restore]
+    D --> E[⑤ 배포<br/>make deploy]
 
     style A fill:#ff6b6b,color:#fff
     style B fill:#ff6b6b,color:#fff
-    style F fill:#51cf66,color:#fff
+    style E fill:#51cf66,color:#fff
 ```
 
 | # | 단계 | 명령 | 설명 |
@@ -210,9 +209,8 @@ flowchart LR
 | ① | 백업 | `make db-backup` | D1 → 로컬 SQL dump (삭제 전 필수) |
 | ② | 삭제 | `make destroy-all` | Pages,Worker → 인프라(D1, KV, R2, Queues, Cron) 순서대로 전체 삭제 |
 | ③ | 재생성 | `make init && make plan && make apply` | OpenTofu로 인프라 재생성 |
-| ④ | 마이그레이션 | `make migrate` | D1 스키마 적용 |
-| ⑤ | 데이터 복구 | `make db-restore file=backups/d1-xxx.sql` | SQL dump → D1 복구 |
-| ⑥ | 배포 | `make deploy` | Worker + Pages 재배포 |
+| ④ | 복구 | `make db-restore file=backups/d1-xxx.sql` | SQL dump(스키마+데이터) → D1 복구 |
+| ⑤ | 배포 | `make deploy` | Worker + Pages 재배포 |
 
 ---
 
