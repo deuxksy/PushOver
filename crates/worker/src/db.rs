@@ -102,6 +102,23 @@ impl Db {
         Ok(())
     }
 
+    pub async fn export_all_messages(&self) -> Result<Vec<DbMessage>> {
+        let result = self.d1
+            .prepare("SELECT * FROM messages ORDER BY created_at DESC LIMIT 10000")
+            .bind(&[])?
+            .all()
+            .await?;
+        result.results::<DbMessage>()
+    }
+
+    pub async fn update_message_image_url(&self, id: &str, image_url: &str) -> Result<()> {
+        self.d1.prepare("UPDATE messages SET image_url = ? WHERE id = ?")
+            .bind(&[JsValue::from_str(image_url), JsValue::from_str(id)])?
+            .run()
+            .await?;
+        Ok(())
+    }
+
     pub async fn acknowledge_message(&self, id: &str) -> Result<()> {
         self.d1
             .prepare("UPDATE messages SET status = 'acknowledged', acknowledged_at = datetime('now'), updated_at = datetime('now') WHERE id = ?")

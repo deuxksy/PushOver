@@ -1,8 +1,8 @@
 use worker::*;
+use base64::Engine;
 use crate::types::{ErrorResponse, WebhookMessage};
 use crate::middleware::{extract_token, unauthorized_response, with_cors};
 use crate::crypto::{verify_signature, generate_signature};
-use crate::pushover::PushOverClient;
 use crate::db::Db;
 
 pub async fn root(
@@ -26,7 +26,7 @@ pub async fn not_found(
     Ok(Response::from_json(&ErrorResponse::not_found("Endpoint not found"))?)
 }
 
-/// POST /api/v1/messages - PushOver API로 메시지 발송
+/// POST /api/v1/messages - Queue에 메시지 투입 (Producer)
 pub async fn send_message(
     mut req: Request,
     ctx: RouteContext<()>,
@@ -36,9 +36,10 @@ pub async fn send_message(
         Err(_) => return unauthorized_response("Missing or invalid Authorization header"),
     };
 
-    // 토큰 검증 → user_key 획득
+    // KV 캐시 우선 토큰 검증 (Cache-Aside)
     let db = Db::new(&ctx)?;
-    let user_key = match db.validate_token(&token).await? {
+    let kv = crate::kv::Kv::new(&ctx.env)?;
+    let user_key = match kv.validate_token(&db, &token).await? {
         Some(key) => key,
         None => return unauthorized_response("Invalid or inactive token"),
     };
@@ -51,68 +52,81 @@ pub async fn send_message(
     let message = body.get("message")
         .and_then(|v| v.as_str())
         .ok_or_else(|| Error::from("Missing 'message' field"))?;
+    let pushover_token = body.get("token")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| Error::from("Missing 'token' field (PushOver app token)"))?;
 
+    let msg_id = uuid::Uuid::new_v4().to_string();
+
+    // 이미지 처리 (base64 → R2 업로드)
+    let image_url = if let Some(image_b64) = body.get("image").and_then(|v| v.as_str()) {
+        let r2 = crate::r2::R2::new(&ctx.env)?;
+        let image_key = format!("msg/{}/image.png", &msg_id);
+        match base64::engine::general_purpose::STANDARD.decode(image_b64) {
+            Ok(data) => {
+                match r2.upload_image(&image_key, &data, "image/png").await {
+                    Ok(url) => Some(url),
+                    Err(_) => None,
+                }
+            }
+            Err(_) => None,
+        }
+    } else {
+        None
+    };
+
+    // 메시지 필드 추출
     let title = body.get("title").and_then(|v| v.as_str());
     let priority = body.get("priority").and_then(|v| v.as_i64()).map(|p| p as i32);
     let sound = body.get("sound").and_then(|v| v.as_str());
     let device = body.get("device").and_then(|v| v.as_str());
-    let url = body.get("url").and_then(|v| v.as_str());
+    let url_field = body.get("url").and_then(|v| v.as_str());
     let url_title = body.get("url_title").and_then(|v| v.as_str());
     let html = body.get("html").and_then(|v| v.as_bool());
     let retry = body.get("retry").and_then(|v| v.as_u64()).map(|r| r as u32);
     let expire = body.get("expire").and_then(|v| v.as_u64()).map(|e| e as u32);
 
-    // PushOver API 호출 - body의 token 필드를 PushOver 앱 토큰으로 사용
-    let pushover_token = body.get("token")
-        .and_then(|v| v.as_str())
-        .ok_or_else(|| Error::from("Missing 'token' field (PushOver app token)"))?;
-
-    let client = PushOverClient::from_env(&ctx.env)?;
-    let result = match client.send_message(
-        pushover_token, user, message, title, priority, sound,
-        device, url, url_title, html, retry, expire,
-    ).await {
-        Ok(r) => r,
-        Err(e) => {
-            // 실패 시 D1에 기록 (non-blocking)
-            let msg_id = uuid::Uuid::new_v4().to_string();
-            if let Ok(db) = Db::new(&ctx) {
-                let _ = db.insert_message(
-                    &msg_id, &user_key, message, title,
-                    priority.unwrap_or(0), sound, device,
-                    url, url_title, html.unwrap_or(false),
-                    "failed", None, Some(&token),
-                ).await;
-                let _ = db.upsert_failed_delivery(&msg_id, &e.to_string()).await;
-            }
-            return Ok(Response::from_json(&serde_json::json!({
-                "status": "error",
-                "message": format!("PushOver API error: {}", e),
-                "request": uuid::Uuid::new_v4().to_string()
-            }))?.with_status(502));
-        }
-    };
-
-    // D1에 메시지 저장
-    let msg_id = uuid::Uuid::new_v4().to_string();
-    let db = Db::new(&ctx)?;
+    // D1에 메시지 저장 (status=queued)
     db.insert_message(
         &msg_id, &user_key, message, title,
         priority.unwrap_or(0), sound, device,
-        url, url_title, html.unwrap_or(false),
-        "sent", result.receipt.as_deref(), Some(&token),
+        url_field, url_title, html.unwrap_or(false),
+        "queued", None, Some(&token),
     ).await?;
 
-    // receipt가 있으면 별도 업데이트
-    if let Some(ref receipt) = result.receipt {
-        db.update_message_receipt(&msg_id, receipt).await?;
+    if let Some(ref img_url) = image_url {
+        db.update_message_image_url(&msg_id, img_url).await?;
     }
 
+    // Queue에 메시지 투입
+    let queue_msg = crate::types::QueueMessage {
+        id: msg_id.clone(),
+        user_key: user_key.clone(),
+        api_token: token.to_string(),
+        pushover_token: pushover_token.to_string(),
+        user: user.to_string(),
+        message: message.to_string(),
+        title: title.map(String::from),
+        priority,
+        sound: sound.map(String::from),
+        device: device.map(String::from),
+        url: url_field.map(String::from),
+        url_title: url_title.map(String::from),
+        html,
+        retry,
+        expire,
+        image_url: image_url.clone(),
+    };
+
+    ctx.env.queue("MESSAGE_QUEUE")?
+        .send(queue_msg)
+        .await?;
+
     Ok(with_cors(Response::from_json(&serde_json::json!({
-        "status": "success",
-        "request": result.request,
-        "receipt": result.receipt
-    }))?))
+        "status": "queued",
+        "message_id": msg_id,
+        "request": uuid::Uuid::new_v4().to_string()
+    }))?.with_status(202)))
 }
 
 /// GET /api/v1/messages - 메시지 목록 조회

@@ -40,3 +40,11 @@ pub fn generate_signature(payload: &str, secret: &str) -> Result<String> {
     let result = mac.finalize().into_bytes();
     Ok(hex::encode(result))
 }
+
+/// 토큰 해시 (KV 캐시 키로 사용, 기존 sha2 crate 재사용)
+pub fn hash_token(token: &str) -> String {
+    use sha2::{Sha256, Digest};
+    let mut hasher = Sha256::new();
+    hasher.update(token.as_bytes());
+    format!("{:x}", hasher.finalize())
+}
