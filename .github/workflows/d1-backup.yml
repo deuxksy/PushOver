@@ -42,11 +42,32 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           CUTOFF=$(date -u -d '7 days ago' +%Y%m%d)
-          OBJECTS=$(wrangler r2 object list pushover-backups --prefix d1-full-backup/ --json)
-          echo "$OBJECTS" | jq -r '.[].key' | while read key; do
+          echo "Cutoff date: $CUTOFF"
+
+          # Cloudflare R2 S3-compatible API로 객체 목록 조회
+          # wrangler에는 r2 object list/delete 명령이 없으므로 REST API 사용
+          API="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/r2/buckets/pushover-backups/objects"
+
+          # 객체 목록 조회
+          OBJECTS=$(curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$API" | jq -r '.result[]?.key // empty')
+
+          if [ -z "$OBJECTS" ]; then
+            echo "No objects found in d1-full-backup/"
+            exit 0
+          fi
+
+          echo "$OBJECTS" | while read -r key; do
+            # d1-full-backup/ 프리픽스가 없는 객체는 스킵
+            case "$key" in
+              d1-full-backup/*) ;;
+              *) continue ;;
+            esac
+
             DATE_PART=$(echo "$key" | grep -oP '\d{8}' | head -1)
             if [ -n "$DATE_PART" ] && [ "$DATE_PART" -lt "$CUTOFF" ]; then
               echo "Deleting old backup: $key"
-              wrangler r2 object delete "pushover-backups/$key" --force
+              curl -s -X DELETE \
+                -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+                "$API/$key" > /dev/null
             fi
           done
