@@ -1,5 +1,6 @@
 .PHONY: init plan apply output \
       migrate migrate-create migrate-local db-console \
+      db-backup db-backup-local db-restore db-restore-local \
       setup dashboard-install setup-crates \
       clean \
       build build-dashboard build-worker \
@@ -50,6 +51,39 @@ db-console:
 	@echo "Opening D1 console..."
 	@test -n "$(sql)" || (echo "Usage: make db-console sql='SELECT * FROM messages'" && exit 1)
 	@cd crates/worker && wrangler d1 execute $(DB_NAME) --remote --command="$(sql)"
+
+# ── Backup & Restore: D1 백업/복구 ──────────────
+# db-backup          원격 D1 전체 export → SQL dump (backups/)
+# db-backup-local    로컬 D1 전체 export → SQL dump (backups/)
+# db-restore         원격 D1 복구 (file=필수)
+# db-restore-local   로컬 D1 복구 (file=필수)
+
+BACKUP_DIR  := backups
+BACKUP_FILE := $(BACKUP_DIR)/d1-$(shell date -u +%Y%m%d_%H%M%S).sql
+
+db-backup:
+	@mkdir -p $(BACKUP_DIR)
+	@echo "Exporting remote D1 to $(BACKUP_FILE)..."
+	@cd crates/worker && wrangler d1 export $(DB_NAME) --remote --output=../../$(BACKUP_FILE)
+	@echo "Done: $(BACKUP_FILE)"
+db-backup-local:
+	@mkdir -p $(BACKUP_DIR)
+	@eval BACKUP_FILE_LOCAL=$(BACKUP_DIR)/d1-local-$$(date -u +%Y%m%d_%H%M%S).sql; \
+		echo "Exporting local D1 to $$BACKUP_FILE_LOCAL..."; \
+		cd crates/worker && wrangler d1 export $(DB_NAME) --local --output=../../$$BACKUP_FILE_LOCAL; \
+		echo "Done: $$BACKUP_FILE_LOCAL"
+db-restore:
+	@test -n "$(file)" || (echo "Usage: make db-restore file=backups/d1-20260329_180000.sql" && exit 1)
+	@test -f "$(file)" || (echo "File not found: $(file)" && exit 1)
+	@echo "Restoring remote D1 from $(file)..."
+	@cd crates/worker && wrangler d1 execute $(DB_NAME) --remote --file=../../$(file)
+	@echo "Done"
+db-restore-local:
+	@test -n "$(file)" || (echo "Usage: make db-restore-local file=backups/d1-20260329_180000.sql" && exit 1)
+	@test -f "$(file)" || (echo "File not found: $(file)" && exit 1)
+	@echo "Restoring local D1 from $(file)..."
+	@cd crates/worker && wrangler d1 execute $(DB_NAME) --local --file=../../$(file)
+	@echo "Done"
 
 # ── Setup: 로컬 개발 환경 구성 ─────
 # setup            전체 의존성 설치 + Rust 컴파일 + 로컬 개발 준비
