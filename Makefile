@@ -1,68 +1,12 @@
-.PHONY: setup \
+.PHONY: init plan apply output \
+      migrate migrate-create migrate-local db-console \
+      setup dashboard-install setup-crates \
+      clean \
       build build-dashboard build-worker \
       check lint \
-      clean \
       deploy deploy-dashboard deploy-worker \
-      dev dev-dashboard dev-worker \
-      init plan apply output \
-      migrate migrate-create migrate-local db-console \
-      dashboard-install setup-crates \
-      test test-worker test-worker-verbose test-cli test-sdk test-dashboard-loc test-dashboard-dev test-dashboard-all
-
-# ── Build: 빌드 ──────────────────────────────
-# build          전체 빌드 (dashboard + worker)
-# build-dashboard Next.js → Cloudflare Pages 빌드 산출물
-# build-worker  Rust → WASM 컴파일
-# check          빌드 없이 타입/문법 검사 (빠름)
-# lint           Rust 린터 검사 (clippy)
-
-build: build-dashboard build-worker
-build-dashboard:
-	@echo "Building Dashboard (Next.js)..."
-	@cd dashboard && pnpm build
-build-worker:
-	@echo "Building Worker (WASM)..."
-	@cd crates/worker && worker-build --release
-check:
-	@echo "Checking Rust types..."
-	@cd crates && cargo check --workspace
-lint:
-	@echo "Linting Rust code..."
-	@cd crates && cargo clippy --workspace -- -D warnings
-
-# ── Clean: 정리 ─────────────────────────────
-# clean          빌드 산출물 전체 삭제
-clean:
-	rm -rf \
-		target node_modules .wrangler \
-		crates/target crates/worker/node_modules crates/worker/.wrangler \
-		dashboard/.next dashboard/.vercel/output dashboard/node_modules dashboard/.wrangler dashboard/test-results dashboard/playwright-report
-
-# ── Dev: 로컬 개발 서버 ────────────────────
-# dev            전체 개발 서버 실행
-# dev-dashboard  Next.js 개발 서버 (http://localhost:3000)
-# dev-worker     Worker 로컬 개발 서버 (wrangler dev)
-
-dev: dev-dashboard dev-worker
-dev-dashboard:
-	@echo "Starting Dashboard dev server..."
-	@cd dashboard && pnpm dev
-dev-worker:
-	@echo "Starting Worker dev server..."
-	@cd crates/worker && wrangler dev
-
-# ── Deploy: 배포 ──────────────────────────
-# deploy          전체 배포 (dashboard + worker)
-# deploy-dashboard Cloudflare Pages 배포
-# deploy-worker   Cloudflare Workers 배포
-
-deploy: deploy-dashboard deploy-worker
-deploy-dashboard:
-	@echo "Deploying Dashboard to Cloudflare Pages..."
-	@cd dashboard && pnpm run deploy
-deploy-worker:
-	@echo "Deploying Worker to Cloudflare Workers..."
-	@cd crates/worker && wrangler deploy
+      test test-sdk test-cli test-worker test-worker-verbose test-dashboard-loc test-dashboard-dev test-dashboard-all \
+      dev dev-dashboard dev-worker
 
 # ── Infrastructure: 인프라 (OpenTofu) ──
 # init    백엔드 초기화
@@ -115,8 +59,56 @@ dashboard-install:
 	@echo "Installing Dashboard dependencies..."
 	@cd dashboard && pnpm install
 setup-crates:
+	@echo "Installing worker-build..."
+	@cargo install worker-build
 	@echo "Checking Rust workspace..."
 	@cd crates && cargo check --workspace
+
+# ── Clean: 정리 ─────────────────────────────
+# clean          빌드 산출물 전체 삭제
+
+clean:
+	rm -rf \
+		target node_modules .wrangler \
+		crates/target crates/worker/node_modules crates/worker/.wrangler \
+		dashboard/.next dashboard/.vercel/output dashboard/node_modules dashboard/.wrangler dashboard/test-results dashboard/playwright-report
+
+# ── Build: 빌드 ──────────────────────────────
+# build          전체 빌드 (dashboard + worker)
+# build-dashboard Next.js → Cloudflare Pages 빌드 산출물
+# build-worker  Rust → WASM 컴파일
+
+build: build-dashboard build-worker
+build-dashboard:
+	@echo "Building Dashboard (Next.js)..."
+	@cd dashboard && pnpm build
+build-worker:
+	@echo "Building Worker (WASM)..."
+	@cd crates/worker && worker-build --release
+
+# ── Check & Lint: 정적 분석 ────────────────
+# check          빌드 없이 타입/문법 검사 (빠름)
+# lint           Rust 린터 검사 (clippy)
+
+check:
+	@echo "Checking Rust types..."
+	@cd crates && cargo check --workspace
+lint:
+	@echo "Linting Rust code..."
+	@cd crates && cargo clippy --workspace -- -D warnings
+
+# ── Deploy: 배포 ──────────────────────────
+# deploy          전체 배포 (dashboard + worker)
+# deploy-dashboard Cloudflare Pages 배포
+# deploy-worker   Cloudflare Workers 배포
+
+deploy: deploy-dashboard deploy-worker
+deploy-dashboard:
+	@echo "Deploying Dashboard to Cloudflare Pages..."
+	@cd dashboard && pnpm run deploy
+deploy-worker:
+	@echo "Deploying Worker to Cloudflare Workers..."
+	@cd crates/worker && wrangler deploy
 
 # ── Test: 테스트 ──────────────────────────
 # test               전체 테스트 (sdk + cli + worker + dashboard)
@@ -150,3 +142,16 @@ test-dashboard-dev:
 test-dashboard-all:
 	@echo "Running all Dashboard tests..."
 	@cd dashboard && pnpm test:all
+
+# ── Dev: 로컬 개발 서버 (Cloudflare 에뮬레이션) ──
+# dev            전체 개발 서버 실행
+# dev-dashboard  Next.js 개발 서버 (http://localhost:3000)
+# dev-worker     Worker 로컬 개발 서버 (wrangler dev)
+
+dev: dev-dashboard dev-worker
+dev-dashboard:
+	@echo "Starting Dashboard dev server..."
+	@cd dashboard && pnpm dev
+dev-worker:
+	@echo "Starting Worker dev server..."
+	@cd crates/worker && wrangler dev
