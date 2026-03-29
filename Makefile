@@ -1,3 +1,8 @@
+ifneq (,$(wildcard .env))
+    include .env
+    export
+endif
+
 .PHONY: init plan apply output destroy \
       migrate migrate-create migrate-local db-console \
       db-backup db-backup-local db-restore db-restore-local \
