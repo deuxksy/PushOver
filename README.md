@@ -194,7 +194,7 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    A[① 백업<br/>make db-backup] --> B[② 삭제<br/>make destroy<br/>make destroy-cloud]
+    A[① 백업<br/>make db-backup] --> B[② 삭제<br/>make destroy-all]
     B --> C[③ 재생성<br/>make init/plan/apply]
     C --> D[④ 마이그레이션<br/>make migrate]
     D --> E[⑤ 데이터 복구<br/>make db-restore]
@@ -208,7 +208,7 @@ flowchart LR
 | # | 단계 | 명령 | 설명 |
 | - | ---- | ---- | ---- |
 | ① | 백업 | `make db-backup` | D1 → 로컬 SQL dump (삭제 전 필수) |
-| ② | 삭제 | `make destroy && make destroy-cloud` | 인프라(D1, KV, R2, Queues) + Worker/Pages 전체 삭제 |
+| ② | 삭제 | `make destroy-all` | Worker/Pages → 인프라(D1, KV, R2, Queues, Cron) 순서대로 전체 삭제 |
 | ③ | 재생성 | `make init && make plan && make apply` | OpenTofu로 인프라 재생성 |
 | ④ | 마이그레이션 | `make migrate` | D1 스키마 적용 |
 | ⑤ | 데이터 복구 | `make db-restore file=backups/d1-xxx.sql` | SQL dump → D1 복구 |
