@@ -20,6 +20,7 @@ export interface SendMessageRequest {
   url?: string;
   url_title?: string;
   html?: boolean;
+  image?: string;
 }
 
 export interface SendMessageResponse {
@@ -91,6 +92,7 @@ export class PushOverAPI {
         url: data.url,
         url_title: data.url_title,
         html: data.html,
+        image: data.image,
       }),
     });
   }

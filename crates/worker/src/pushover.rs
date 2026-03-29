@@ -51,6 +51,8 @@ impl PushOverClient {
         html: Option<bool>,
         retry: Option<u32>,
         expire: Option<u32>,
+        attachment_base64: Option<&str>,
+        attachment_type: Option<&str>,
     ) -> Result<PushOverResponse> {
         // Build form-encoded body
         let mut params: Vec<(String, String)> = vec![
@@ -85,6 +87,12 @@ impl PushOverClient {
         }
         if let Some(expire) = expire {
             params.push(("expire".to_string(), expire.to_string()));
+        }
+        if let Some(attachment_base64) = attachment_base64 {
+            params.push(("attachment_base64".to_string(), attachment_base64.to_string()));
+        }
+        if let Some(attachment_type) = attachment_type {
+            params.push(("attachment_type".to_string(), attachment_type.to_string()));
         }
 
         let body = form_urlencode(&params);

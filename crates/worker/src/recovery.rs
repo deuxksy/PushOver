@@ -68,6 +68,7 @@ pub async fn handle_failed_messages(
             msg.title.as_deref(), msg.priority, msg.sound.as_deref(),
             msg.device.as_deref(), msg.url.as_deref(), msg.url_title.as_deref(),
             msg.html, msg.retry, msg.expire,
+            None, None,
         ).await {
             Ok(result) => {
                 db.update_message_status(&delivery.message_id, "sent").await?;
@@ -122,6 +123,7 @@ pub async fn retry_message(
                 msg.title.as_deref(), Some(msg.priority), msg.sound.as_deref(),
                 msg.device.as_deref(), msg.url.as_deref(), msg.url_title.as_deref(),
                 Some(msg.html != 0), retry, expire,
+                None, None,
             ).await {
                 Ok(result) => {
                     db.update_message_status(&msg.id, "sent").await?;
@@ -149,6 +151,7 @@ pub async fn retry_message(
         msg.title.as_deref(), msg.priority, msg.sound.as_deref(),
         msg.device.as_deref(), msg.url.as_deref(), msg.url_title.as_deref(),
         msg.html, msg.retry, msg.expire,
+        None, None,
     ).await {
         Ok(result) => {
             db.update_message_status(&msg.id, "sent").await?;

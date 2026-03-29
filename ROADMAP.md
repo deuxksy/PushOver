@@ -13,7 +13,7 @@
 - ✅ Playwright E2E 테스트
 - ✅ Webhook (등록/전송/기록)
 
-### v0.2.0 - Queue & KV (Producer-Consumer)
+### v0.2.0 - Queue & KV (Producer-Consumer) ✅
 
 **아키텍처**: Queue-First + KV Fallback
 
@@ -30,24 +30,28 @@
 ```
 
 **Queue**:
-- [ ] 메시지 Producer (POST /messages → Queue 투입)
-- [ ] 메시지 Consumer (Queue → PushOver API 호출)
-- [ ] 202 Accepted 즉시 응답
+
+- [x] 메시지 Producer (POST /messages → Queue 투입)
+- [x] 메시지 Consumer (Queue → PushOver API 호출)
+- [x] 202 Accepted 즉시 응답
 
 **KV** (3가지 용도):
-- [ ] Token 캐시: `pushover-tokens:{hash}` → user_key (TTL 1h, D1이 원본)
+
+- [x] Token 캐시: `pushover-tokens:{hash}` → user_key (TTL 1h, D1이 원본)
 - [ ] Webhook 캐시: `pushover-webhooks:{user_key}` → webhook 목록 JSON (TTL 5m)
-- [ ] 실패 메시지 백업: `pushover-failed:{message_id}` → 메시지 본문 (TTL 7d)
+- [x] 실패 메시지 백업: `pushover-failed:{message_id}` → 메시지 본문 (TTL 7d)
 
 **R2** (2가지 용도):
-- [ ] D1 백업 스냅샷: Cron으로 주기적 D1 export → R2 저장 (재해 복구)
-- [ ] 메시지 이미지 첨부: 이미지 업로드 → R2 저장 → PushOver에 URL 전달
+
+- [x] D1 백업 스냅샷: Cron으로 주기적 D1 export → R2 저장 (재해 복구)
+- [x] 메시지 이미지 첨부: 이미지 업로드 → R2 저장 → PushOver에 URL 전달
 
 **D1 변경**:
-- [ ] `messages` 테이블에 `status = "queued"` 추가
-- [ ] `messages` 테이블에 `image_url` 컬럼 추가 (R2 이미지 참조)
-- [ ] `failed_deliveries`에서 메시지 본문 컬럼 제거 (KV로 이관)
-- [ ] Cron Recovery → KV 기반 본문 복원 로직
+
+- [x] `messages` 테이블에 `status = "queued"` 추가
+- [x] `messages` 테이블에 `image_url` 컬럼 추가 (R2 이미지 참조)
+- [x] `failed_deliveries`에서 메시지 본문 컬럼 제거 (KV로 이관)
+- [x] Cron Recovery → KV 기반 본문 복원 로직
 
 ### v0.3.0 - Webhook 고도화
 

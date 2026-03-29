@@ -1,5 +1,7 @@
 use anyhow::Result;
+use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 use serde::Deserialize;
+use std::fs;
 
 #[derive(Debug)]
 pub struct SendOptions {
@@ -13,6 +15,7 @@ pub struct SendOptions {
     pub url_title: Option<String>,
     pub sound: Option<String>,
     pub timestamp: Option<i64>,
+    pub image: Option<String>,
     pub html: bool,
 }
 
@@ -64,6 +67,11 @@ pub async fn execute(options: SendOptions) -> Result<()> {
     }
     if let Some(ts) = options.timestamp {
         body.insert("timestamp".into(), serde_json::Value::Number(ts.into()));
+    }
+    if let Some(image_path) = options.image {
+        let data = fs::read(&image_path)
+            .map_err(|e| anyhow::anyhow!("Cannot read image '{}': {}", image_path, e))?;
+        body.insert("image".into(), serde_json::Value::String(BASE64.encode(&data)));
     }
 
     let url = format!("{}/api/v1/messages", worker_url.trim_end_matches('/'));

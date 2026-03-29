@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import path from 'path';
+import fs from 'fs';
 import { config } from 'dotenv';
 
 // .env 파일에서 환경변수 로드
@@ -72,6 +73,35 @@ test.describe.serial('실제 API 연동 테스트 (브라우저)', () => {
     await expect(page.getByRole('button', { name: '전송 중...' })).toBeHidden({ timeout: 10000 });
 
     // 성공 메시지 확인 (모달이 닫히거나 성공 표시)
+    await page.waitForTimeout(1000);
+  });
+
+  test('2-1. 이미지 첨부 메시지 전송 (브라우저 UI)', async ({ page }) => {
+    test.slow();
+    await setSettings(page);
+
+    await expect(page.locator('h1')).toContainText('PushOver Dashboard');
+
+    // 메시지 모달 열기
+    await page.getByRole('button', { name: '메시지 보내기' }).click();
+    await expect(page.locator('h3')).toContainText('메시지 보내기');
+
+    const imgStamp = `${Date.now()}`;
+    await page.fill('input[placeholder="메시지 제목"]', `Image Test ${imgStamp}`);
+    await page.fill('textarea[placeholder="전송할 메시지"]', `[E2E Image] ${imgStamp}`);
+
+    // 이미지 파일 첨부
+    const sampleImage = path.resolve(__dirname, '../../tests/sample.jpg');
+    expect(fs.existsSync(sampleImage), 'tests/sample.jpg 가 존재해야 함').toBeTruthy();
+    const fileInput = page.locator('input[type="file"]');
+    await fileInput.setInputFiles(sampleImage);
+
+    // 미리보기 확인
+    await expect(page.locator('img[alt="preview"]')).toBeVisible({ timeout: 3000 });
+
+    // 전송
+    await page.getByRole('button', { name: '전송' }).click();
+    await expect(page.getByRole('button', { name: '전송 중...' })).toBeHidden({ timeout: 15000 });
     await page.waitForTimeout(1000);
   });
 

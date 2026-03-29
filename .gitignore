@@ -1,45 +1,67 @@
-# Rust
-/target/
+# ──────────────────────────────────────
+# Rust (workspace: crates/)
+# ──────────────────────────────────────
+crates/target/
 **/*.rs.bk
-Cargo.lock
 
-# Node
+# ──────────────────────────────────────
+# Node.js (dashboard/)
+# ──────────────────────────────────────
 node_modules/
 dist/
 .wrangler/
+.next/
 
+# ──────────────────────────────────────
+# 루트 오염 방지
+# 루트는 Makefile, *.md, .gitignore 만 허용
+# ──────────────────────────────────────
+/package.json
+/package-lock.json
+/pnpm-lock.yaml
+/Cargo.toml
+/Cargo.lock
+/target/
+/.vercel/
+
+# ──────────────────────────────────────
 # Environment
+# ──────────────────────────────────────
 .env
 .env.local
 .env.test
+.env*.local
 
+# ──────────────────────────────────────
 # IDE
+# ──────────────────────────────────────
 .idea/
 .vscode/
 *.swp
 
+# ──────────────────────────────────────
 # OS
+# ──────────────────────────────────────
 .DS_Store
+Thumbs.db
 
+# ──────────────────────────────────────
 # OpenTofu
+# ──────────────────────────────────────
 *.tfstate
 *.tfstate.*
 .terraform/
 *.tfvars
 *.tfvars.json
 
-# OMC (Oh My Claude Code)
+# ──────────────────────────────────────
+# Tools
+# ──────────────────────────────────────
 .omc/
 */.omc/
 */*/.omc/
 .superpowers/
-
-# Playwright MCP
 .playwright-mcp/
 *.auth-storage-state.json
-
-# Lock files (optional - uncomment if needed)
-# pnpm-lock.yaml
-# Cargo.lock
 .worktrees/
 .claude/

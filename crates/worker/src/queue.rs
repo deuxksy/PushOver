@@ -1,8 +1,28 @@
 use worker::*;
+use base64::Engine;
 use crate::types::QueueMessage;
 use crate::pushover::PushOverClient;
 use crate::db::Db;
 use crate::kv::Kv;
+use crate::r2::R2;
+
+/// 바이트 매직 넘버로 MIME 타입 추론
+fn detect_mime_type(bytes: &[u8]) -> &'static str {
+    if bytes.len() >= 4 {
+        match &bytes[0..4] {
+            [0x89, 0x50, 0x4E, 0x47] => return "image/png",
+            _ => {}
+        }
+    }
+    if bytes.len() >= 3 {
+        match &bytes[0..3] {
+            [0xFF, 0xD8, 0xFF] => return "image/jpeg",
+            [0x47, 0x49, 0x46] => return "image/gif",
+            _ => {}
+        }
+    }
+    "image/jpeg"
+}
 
 /// 단일 Queue 메시지 소비
 pub async fn consume_message(
@@ -12,6 +32,30 @@ pub async fn consume_message(
     let client = PushOverClient::from_env(env)?;
     let db = Db::from_env(env)?;
     let kv = Kv::new(env)?;
+
+    // R2에서 이미지 조회 → base64 인코딩
+    let (attachment_base64, attachment_type) = if let Some(ref image_url) = msg.image_url {
+        let r2 = R2::new(env)?;
+        let key = image_url.trim_start_matches("/images/");
+        match r2.get_image(key).await {
+            Ok(Some(bytes)) => {
+                let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
+                let mime = detect_mime_type(&bytes);
+                console_log!("Image fetched from R2: {} ({} bytes, {})", key, bytes.len(), mime);
+                (Some(b64), Some(mime.to_string()))
+            }
+            Ok(None) => {
+                console_error!("Image not found in R2: {}", key);
+                (None, None)
+            }
+            Err(e) => {
+                console_error!("R2 fetch error for {}: {}", key, e);
+                (None, None)
+            }
+        }
+    } else {
+        (None, None)
+    };
 
     let result = match client.send_message(
         &msg.pushover_token,
@@ -26,6 +70,8 @@ pub async fn consume_message(
         msg.html,
         msg.retry,
         msg.expire,
+        attachment_base64.as_deref(),
+        attachment_type.as_deref(),
     ).await {
         Ok(r) => r,
         Err(e) => {

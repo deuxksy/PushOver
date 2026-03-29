@@ -11,6 +11,8 @@ export default function Home() {
   const [title, setTitle] = useState('');
   const [sending, setSending] = useState(false);
   const [showBanner, setShowBanner] = useState(false);
+  const [imageBase64, setImageBase64] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const { settings, isLoading, hasRequiredSettings } = useSettings();
 
   useEffect(() => {
@@ -20,16 +22,45 @@ export default function Home() {
   const handleSend = async () => {
     setSending(true);
     try {
-      await pushOverAPI.sendMessage({ message, title: title || undefined });
+      await pushOverAPI.sendMessage({ message, title: title || undefined, image: imageBase64 || undefined });
       alert('메시지 전송 성공!');
       setShowModal(false);
       setMessage('');
       setTitle('');
+      setImageBase64(null);
+      setImagePreview(null);
     } catch (error) {
       alert('전송 실패: ' + (error instanceof Error ? error.message : error));
     } finally {
       setSending(false);
     }
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // 미리보기 생성
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setImagePreview(ev.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    // base64 인코딩 (data URL prefix 제거)
+    const b64Reader = new FileReader();
+    b64Reader.onload = (ev) => {
+      const result = ev.target?.result as string;
+      // "data:image/...;base64," prefix 제거
+      const base64 = result.split(',')[1];
+      setImageBase64(base64);
+    };
+    b64Reader.readAsDataURL(file);
+  };
+
+  const clearImage = () => {
+    setImageBase64(null);
+    setImagePreview(null);
   };
 
   if (isLoading) {
@@ -129,12 +160,37 @@ export default function Home() {
                   className="w-full px-3 py-2 border border-zinc-700 rounded-lg bg-zinc-800 text-zinc-100"
                 />
               </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-300 mb-2">
+                  이미지 첨부 (선택)
+                </label>
+                {imagePreview ? (
+                  <div className="relative">
+                    <img src={imagePreview} alt="preview" className="max-h-40 rounded-lg border border-zinc-700" />
+                    <button
+                      type="button"
+                      onClick={clearImage}
+                      className="absolute top-1 right-1 w-6 h-6 bg-black/70 text-white rounded-full text-xs flex items-center justify-center hover:bg-red-600"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ) : (
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="w-full text-sm text-zinc-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-zinc-700 file:text-zinc-200 hover:file:bg-zinc-600"
+                  />
+                )}
+              </div>
               <div className="flex gap-3 justify-end">
                 <button
                   onClick={() => {
                     setShowModal(false);
                     setMessage('');
                     setTitle('');
+                    clearImage();
                   }}
                   className="px-4 py-2 border border-zinc-700 rounded-lg font-medium hover:bg-zinc-800 transition-colors text-zinc-300"
                 >

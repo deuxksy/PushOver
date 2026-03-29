@@ -12,7 +12,7 @@ database_id = "b8714aa2-58ce-40c7-873f-b8b94e2d53c3"
 # KV Namespace (token cache, webhook cache, failed message backup)
 [[kv_namespaces]]
 binding = "KV"
-id = "<KV_NAMESPACE_ID>"  # tofu output으로 획득 후 입력
+id = "5715dcaacdce43c08a9c3ea1723942d0"
 
 # Queue (Producer-Consumer)
 [[queues.producers]]

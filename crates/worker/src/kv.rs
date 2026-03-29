@@ -10,7 +10,7 @@ pub struct Kv {
 impl Kv {
     /// Env에서 KVStore 생성
     pub fn new(env: &Env) -> Result<Self> {
-        let kv = env.kv("PUSHOVER_CACHE")?;
+        let kv = env.kv("KV")?;
         Ok(Self { kv })
     }
 

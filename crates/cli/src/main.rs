@@ -55,6 +55,10 @@ enum Commands {
         #[arg(short = 'T', long)]
         timestamp: Option<i64>,
 
+        /// Image file path (attached as base64)
+        #[arg(short, long)]
+        image: Option<String>,
+
         /// Enable HTML formatting
         #[arg(long)]
         html: bool,
@@ -96,7 +100,7 @@ async fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Send { message, title, user, token, device, priority, url, url_title, sound, timestamp, html } => {
+        Commands::Send { message, title, user, token, device, priority, url, url_title, sound, timestamp, image, html } => {
             let options = commands::send::SendOptions {
                 message,
                 title,
@@ -108,6 +112,7 @@ async fn main() -> Result<()> {
                 url_title,
                 sound,
                 timestamp,
+                image,
                 html,
             };
             commands::send::execute(options).await?;

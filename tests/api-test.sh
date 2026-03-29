@@ -8,10 +8,10 @@ YELLOW='\033[1;33m'
 NC='\033[0m'
 
 # 환경변수 로드
-if [ -f .env.test ]; then
-  source .env.test
+if [ -f .env ]; then
+  source .env
 else
-  echo "Error: .env.test not found"
+  echo "Error: .env not found"
   exit 1
 fi
 
@@ -22,8 +22,8 @@ if [ "$VERBOSE" = "true" ]; then
 fi
 
 # 필수 환경변수 검증
-: "${CF_WORKER_URL:?CF_WORKER_URL required}"
-: "${CF_WORKER_TOKEN:?CF_WORKER_TOKEN required}"
+: "${CLOUDFLARE_WORKER_URL:?CLOUDFLARE_WORKER_URL required}"
+: "${CLOUDFLARE_WORKER_TOKEN:?CLOUDFLARE_WORKER_TOKEN required}"
 : "${PUSHOVER_API_TOKEN:?PUSHOVER_API_TOKEN required}"
 : "${PUSHOVER_USER_KEY:?PUSHOVER_USER_KEY required}"
 
@@ -40,7 +40,7 @@ log_test() { echo -e "${YELLOW}[TEST]${NC} $1"; }
 test_health_check() {
   log_test "Health Check"
 
-  response=$(curl -s "$CF_WORKER_URL/health")
+  response=$(curl -s "$CLOUDFLARE_WORKER_URL/health")
 
   if [ "$response" = "OK" ]; then
     echo "✓ Health check passed"
@@ -51,20 +51,40 @@ test_health_check() {
   fi
 }
 
-# 테스트 2: 메시지 전송
+# 테스트 2: 메시지 전송 (이미지 첨부 포함)
 test_send_message() {
-  log_test "Send Message"
+  log_test "Send Message (with image)"
+
+  # sample.jpg base64 인코딩
+  IMAGE_B64=""
+  if [ -f "tests/sample.jpg" ]; then
+    IMAGE_B64=$(base64 -i tests/sample.jpg)
+  fi
 
   timestamp=$(date +%s)
-  response=$(curl -s --max-time 10 -X POST "$CF_WORKER_URL/api/v1/messages" \
-    -H "Content-Type: application/json" \
-    -H "Authorization: Bearer $CF_WORKER_TOKEN" \
-    -d "{
-      \"token\": \"$PUSHOVER_API_TOKEN\",
-      \"user\": \"$PUSHOVER_USER_KEY\",
-      \"message\": \"Test message $timestamp\",
-      \"title\": \"API Test\"
-    }")
+
+  if [ -n "$IMAGE_B64" ]; then
+    response=$(curl -s --max-time 15 -X POST "$CLOUDFLARE_WORKER_URL/api/v1/messages" \
+      -H "Content-Type: application/json" \
+      -H "Authorization: Bearer $CLOUDFLARE_WORKER_TOKEN" \
+      -d "{
+        \"token\": \"$PUSHOVER_API_TOKEN\",
+        \"user\": \"$PUSHOVER_USER_KEY\",
+        \"message\": \"Test message $timestamp\",
+        \"title\": \"API Test\",
+        \"image\": \"$IMAGE_B64\"
+      }")
+  else
+    response=$(curl -s --max-time 10 -X POST "$CLOUDFLARE_WORKER_URL/api/v1/messages" \
+      -H "Content-Type: application/json" \
+      -H "Authorization: Bearer $CLOUDFLARE_WORKER_TOKEN" \
+      -d "{
+        \"token\": \"$PUSHOVER_API_TOKEN\",
+        \"user\": \"$PUSHOVER_USER_KEY\",
+        \"message\": \"Test message $timestamp\",
+        \"title\": \"API Test\"
+      }")
+  fi
 
   status=$(echo "$response" | jq -r '.status' 2>/dev/null)
 
@@ -75,11 +95,11 @@ test_send_message() {
     return
   fi
 
-  if [ "$status" = "success" ]; then
-    receipt=$(echo "$response" | jq -r '.receipt')
+  if [ "$status" = "success" ] || [ "$status" = "queued" ]; then
+    message_id=$(echo "$response" | jq -r '.message_id // .receipt')
     request=$(echo "$response" | jq -r '.request')
-    echo "✓ Message sent, receipt: $receipt, request: $request"
-    LAST_RECEIPT="${receipt:-$request}"
+    echo "✓ Message $status, id: $message_id, request: $request"
+    LAST_RECEIPT="${message_id:-$request}"
     PASSED=$((PASSED + 1))
   else
     echo "✗ Expected status 'success', got '$status'"
@@ -92,8 +112,8 @@ test_send_message() {
 test_get_messages() {
   log_test "Get Messages"
 
-  response=$(curl -s --max-time 10 "$CF_WORKER_URL/api/v1/messages?limit=10" \
-    -H "Authorization: Bearer $CF_WORKER_TOKEN")
+  response=$(curl -s --max-time 10 "$CLOUDFLARE_WORKER_URL/api/v1/messages?limit=10" \
+    -H "Authorization: Bearer $CLOUDFLARE_WORKER_TOKEN")
 
   status=$(echo "$response" | jq -r '.status')
   count=$(echo "$response" | jq -r '.messages | length')
@@ -117,8 +137,8 @@ test_get_message_status() {
     return
   fi
 
-  response=$(curl -s --max-time 10 "$CF_WORKER_URL/api/v1/messages/$LAST_RECEIPT/status" \
-    -H "Authorization: Bearer $CF_WORKER_TOKEN")
+  response=$(curl -s --max-time 10 "$CLOUDFLARE_WORKER_URL/api/v1/messages/$LAST_RECEIPT/status" \
+    -H "Authorization: Bearer $CLOUDFLARE_WORKER_TOKEN")
 
   status=$(echo "$response" | jq -r '.status')
 
@@ -141,7 +161,7 @@ test_authentication_required() {
   log_test "Authentication Required"
 
   # HTTP 상태 코드로 검증
-  http_code=$(curl -s -w "%{http_code}" -o /tmp/response.json "$CF_WORKER_URL/api/v1/messages?limit=5")
+  http_code=$(curl -s -w "%{http_code}" -o /tmp/response.json "$CLOUDFLARE_WORKER_URL/api/v1/messages?limit=5")
 
   if [ "$http_code" = "401" ]; then
     echo "✓ Correctly rejected unauthenticated request (401)"
@@ -155,7 +175,7 @@ test_authentication_required() {
 
 # 메인 실행 함수
 run_all_tests() {
-  log_info "Starting Worker API tests for: $CF_WORKER_URL"
+  log_info "Starting Worker API tests for: $CLOUDFLARE_WORKER_URL"
   echo ""
 
   test_health_check
