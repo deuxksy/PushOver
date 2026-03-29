@@ -114,19 +114,19 @@ sequenceDiagram
 
 ```mermaid
 flowchart TD
-    A[Queue Consumer: 전송 실패] --> B[KV에 메시지 백업<br/>pushover-failed:{id}<br/>TTL 7d]
-    B --> C[D1 failed_deliveries 기록<br/>retry_count++]
-    C --> D{retry_count < 3?}
+    A[Queue Consumer: 전송 실패] --> B["KV에 메시지 백업<br/>pushover-failed:id<br/>TTL 7d"]
+    B --> C["D1 failed_deliveries 기록<br/>retry_count++"]
+    C --> D{"retry_count < 3?"}
 
-    D -->|Yes| E[Cron Handler<br/>*/5분 실행]
+    D -->|Yes| E["Cron Handler<br/>*/5분 실행"]
     E --> F[KV에서 메시지 본문 복원]
-    F --> G[Queue Consumer → PushOver 재전송]
+    F --> G[PushOver API 재전송]
 
     D -->|No| H[최종 실패<br/>KV TTL 만료로 자동 정리]
 
     G --> I{전송 성공?}
     I -->|Yes| J[D1 status=sent 업데이트<br/>KV 백업 키 삭제]
-    I -->|No| C
+    I -->|No| D
 
     style A fill:#ff6b6b
     style J fill:#51cf66
