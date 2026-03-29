@@ -230,7 +230,7 @@ flowchart LR
     CRON[Cron<br/>매일 18:00 UTC] --> GHA[GitHub Actions]
     GHA -->|wrangler d1 export| SQL[SQL Dump]
     SQL -->|wrangler r2 object put| R2[(R2 Bucket<br/>pushover-backups)]
-    R2 -->|7일 초과| DEL[자동 삭제]
+    R2 -->|7일 초과| DEL[R2 수명 주기 규칙<br/>자동 삭제]
 
     style GHA fill:#2088ff,color:#fff
     style R2 fill:#f5a623,color:#fff
@@ -242,7 +242,7 @@ flowchart LR
 | **주기** | 매일 18:00 UTC (한국 03:00) + `workflow_dispatch` 수동 실행 |
 | **방식** | `wrangler d1 export` → 전체 SQL dump |
 | **저장소** | R2 `pushover-backups/d1-full-backup/` |
-| **보존** | 7일 (초과 시 자동 삭제) |
+| **보존** | 7일 (R2 버킷 수명 주기 규칙으로 자동 삭제) |
 
 ### 복구
 
