@@ -325,7 +325,7 @@ graph LR
 ```
 
 | # | 단계 | make 타겟 | 설명 |
-|---|------|-----------|------|
+| - | ---- | --------- | ---- |
 | ① | 인프라 | `make init && make plan && make apply` | OpenTofu로 D1, KV, R2, Cron 생성 |
 | ② | 마이그레이션 | `make migrate` | D1 스키마 적용 |
 | ③ | 셋업 | `make setup` | pnpm install + Rust workspace check |
