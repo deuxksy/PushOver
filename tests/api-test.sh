@@ -55,16 +55,16 @@ test_health_check() {
 test_send_message() {
   log_test "Send Message (with image)"
 
-  # sample.jpg base64 인코딩
-  IMAGE_B64=""
-  if [ -f "tests/sample.jpg" ]; then
-    IMAGE_B64=$(base64 -i tests/sample.jpg)
+  # sample.jpg base64 인코딩 (항상 첨부)
+  if [ ! -f "tests/sample.jpg" ]; then
+    echo "⊘ Skipping (tests/sample.jpg not found)"
+    return
   fi
+  IMAGE_B64=$(base64 -i tests/sample.jpg)
 
   timestamp=$(date +%s)
 
-  if [ -n "$IMAGE_B64" ]; then
-    response=$(curl -s --max-time 15 -X POST "$CLOUDFLARE_WORKER_URL/api/v1/messages" \
+  response=$(curl -s --max-time 15 -X POST "$CLOUDFLARE_WORKER_URL/api/v1/messages" \
       -H "Content-Type: application/json" \
       -H "Authorization: Bearer $CLOUDFLARE_WORKER_TOKEN" \
       -d "{
@@ -74,17 +74,6 @@ test_send_message() {
         \"title\": \"${TEST_NAME:-test-worker}\",
         \"image\": \"$IMAGE_B64\"
       }")
-  else
-    response=$(curl -s --max-time 10 -X POST "$CLOUDFLARE_WORKER_URL/api/v1/messages" \
-      -H "Content-Type: application/json" \
-      -H "Authorization: Bearer $CLOUDFLARE_WORKER_TOKEN" \
-      -d "{
-        \"token\": \"$PUSHOVER_API_TOKEN\",
-        \"user\": \"$PUSHOVER_USER_KEY\",
-        \"message\": \"Test message $timestamp\",
-        \"title\": \"${TEST_NAME:-test-worker}\"
-      }")
-  fi
 
   status=$(echo "$response" | jq -r '.status' 2>/dev/null)
 
