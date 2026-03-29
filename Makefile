@@ -11,7 +11,7 @@ endif
       build build-dashboard build-worker \
       check lint \
       deploy deploy-dashboard deploy-worker \
-      destroy-cloud destroy-dashboard destroy-worker \
+      destroy-all destroy-cloud destroy-dashboard destroy-worker \
       test test-sdk test-cli test-worker test-worker-verbose test-dashboard-loc test-dashboard-dev test-dashboard-all \
       dev dev-dashboard dev-worker
 
@@ -141,12 +141,12 @@ lint:
 	@echo "Linting Rust code..."
 	@cd crates && cargo clippy --workspace -- -D warnings
 
-# ── Deploy: 배포 ──────────────────────────
-# deploy          전체 배포 (dashboard + worker)
+# ── Deploy: 배포 (순서: infra → worker → dashboard) ──
+# deploy          전체 배포 (apply → deploy-worker → deploy-dashboard)
 # deploy-dashboard Cloudflare Pages 배포
 # deploy-worker   Cloudflare Workers 배포
 
-deploy: deploy-dashboard deploy-worker
+deploy: apply deploy-worker deploy-dashboard
 deploy-dashboard:
 	@echo "Deploying Dashboard to Cloudflare Pages..."
 	@cd dashboard && pnpm run deploy
@@ -154,11 +154,14 @@ deploy-worker:
 	@echo "Deploying Worker to Cloudflare Workers..."
 	@cd crates/worker && wrangler deploy
 
-# ── Destroy: 삭제 (Cloudflare Workers/Pages) ──
-# destroy-cloud          전체 삭제 (dashboard + worker)
-# destroy-dashboard      Cloudflare Pages 프로젝트 삭제
-# destroy-worker         Cloudflare Worker 삭제
+# ── Destroy: 삭제 (순서: worker/pages → infra) ──
+# destroy-all    전체 삭제 (worker/pages → infra)
+# destroy        인프라만 삭제 (D1, KV, R2, Queues, Cron)
+# destroy-cloud  Worker/Pages만 삭제
+# destroy-dashboard Cloudflare Pages 프로젝트 삭제
+# destroy-worker Cloudflare Worker 삭제
 
+destroy-all: destroy-cloud destroy
 destroy-cloud: destroy-dashboard destroy-worker
 destroy-dashboard:
 	@echo "Deleting Dashboard (Cloudflare Pages)..."
