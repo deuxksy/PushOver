@@ -2,20 +2,14 @@
 # Terraform Backend (Cloudflare R2)
 # ============================================
 # S3-compatible backend using Cloudflare R2
-# State file is stored in R2 bucket managed by this Terraform project
-#
-# Initial setup procedure:
-# 1. mv backend.tf backend.tf.bak
-# 2. tofu init -backend=false
-# 3. tofu apply -target=cloudflare_r2_bucket.terraform_state
-# 4. mv backend.tf.bak backend.tf
-# 5. tofu init -reconfigure (answer 'yes' to copy state)
+# State bucket은 수동 생성 후 이 파일에서 참조만 함
+# 생성: npx wrangler r2 bucket create terraform-state --location wnam
 # ============================================
 
 terraform {
   backend "s3" {
-    bucket = "pushover-terraform-state"
-    key    = "terraform.tfstate"
+    bucket = "terraform-state"
+    key    = "pushover/dev/terraform.tfstate"
     region = "auto"
 
     endpoints = {
