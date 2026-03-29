@@ -31,13 +31,19 @@ plan:
 	@cd infrastructure && tofu plan
 apply:
 	@echo "Applying infrastructure changes..."
-	@cd infrastructure && tofu apply -auto-approve
+	@cd infrastructure && tofu apply
+	@echo "Syncing resource IDs to wrangler.toml..."
+	@D1_ID=$$(cd infrastructure && tofu output -raw d1_database_id) && \
+	KV_ID=$$(cd infrastructure && tofu output -raw kv_namespace_id) && \
+	sed -i '' "s/database_id = \".*\"/database_id = \"$${D1_ID}\"/" crates/worker/wrangler.toml && \
+	sed -i '' "s/^id = \".*\"/id = \"$${KV_ID}\"/" crates/worker/wrangler.toml && \
+	echo "  D1: $${D1_ID}" && echo "  KV: $${KV_ID}"
 output:
 	@echo "Showing infrastructure outputs..."
 	@cd infrastructure && tofu output
 destroy:
 	@echo "Destroying all infrastructure (D1, KV, R2, Queues, Cron)..."
-	@cd infrastructure && tofu destroy -auto-approve
+	@cd infrastructure && tofu destroy
 
 # ── Migration: DB 마이그레이션 (Wrangler D1) ──
 # migrations/ 자동 탐색, d1_migrations 테이블로 이력 관리
