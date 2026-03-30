@@ -1,5 +1,7 @@
 # PushOver Serverless Platform
 
+[![D1 Full Backup](https://github.com/deuxksy/PushOver/actions/workflows/d1-backup.yml/badge.svg)](https://github.com/deuxksy/PushOver/actions/workflows/d1-backup.yml)
+
 PushOver API를 위한 Rust 와 TypeScript 기반의 Cloudflare Serverless 알림 시스템입니다.
 
 ## 목차
