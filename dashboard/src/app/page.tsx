@@ -40,18 +40,15 @@ export default function Home() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // 미리보기 생성
     const reader = new FileReader();
     reader.onload = (ev) => {
       setImagePreview(ev.target?.result as string);
     };
     reader.readAsDataURL(file);
 
-    // base64 인코딩 (data URL prefix 제거)
     const b64Reader = new FileReader();
     b64Reader.onload = (ev) => {
       const result = ev.target?.result as string;
-      // "data:image/...;base64," prefix 제거
       const base64 = result.split(',')[1];
       setImageBase64(base64);
     };
@@ -63,80 +60,106 @@ export default function Home() {
     setImagePreview(null);
   };
 
+  const closeModal = () => {
+    setShowModal(false);
+    setMessage('');
+    setTitle('');
+    clearImage();
+  };
+
+  // Modal scroll lock (Spec 7: 접근성 — 모달 오픈 시 overflow: hidden)
+  useEffect(() => {
+    if (showModal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [showModal]);
+
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-zinc-950 p-8">
-        <div className="animate-pulse space-y-4 max-w-7xl mx-auto">
-          <div className="h-16 bg-zinc-800 rounded" />
-          <div className="h-32 bg-zinc-800 rounded" />
+      <div className="min-h-screen bg-black p-8">
+        <div className="animate-pulse space-y-4 max-w-[980px] mx-auto">
+          <div className="h-16 bg-white/10 rounded-2xl" />
+          <div className="h-32 bg-white/10 rounded-2xl" />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950">
-      <nav className="border-b border-zinc-800 bg-black">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 items-center justify-between">
-            <h1 className="text-xl font-bold text-zinc-100">PushOver Dashboard</h1>
-            <div className="flex gap-4">
-              <Link
-                href="/history"
-                className="px-4 py-2 text-sm font-medium text-zinc-300 hover:text-zinc-100"
-              >
-                History
-              </Link>
-              <Link
-                href="/settings"
-                className="px-4 py-2 text-sm font-medium text-zinc-300 hover:text-zinc-100"
-              >
-                Settings
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {showBanner && (
-          <div className="bg-amber-900/30 border border-amber-700 rounded-lg p-4 mb-6">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">⚠️</span>
-              <div className="flex-1">
-                <p className="font-medium text-amber-200">PushOver 설정이 필요합니다</p>
-                <p className="text-sm text-zinc-400">알림을 받으려면 Settings 페이지에서 API Token과 User Key를 설정해주세요.</p>
-              </div>
-              <Link href="/settings" className="px-4 py-2 bg-amber-600 text-white rounded-lg font-medium hover:bg-amber-700 transition-colors whitespace-nowrap">
-                설정하기
-              </Link>
-            </div>
-          </div>
-        )}
-
-        <div className="text-center py-20">
-          <h2 className="text-3xl font-bold tracking-tight text-zinc-100 sm:text-4xl mb-4">
+    <div className="min-h-screen">
+      {/* Section 1: Black Hero */}
+      <section className="bg-black text-white text-center py-20 px-6">
+        <div className="max-w-[980px] mx-auto">
+          <h1
+            className="font-semibold mb-3"
+            style={{ fontSize: 'clamp(28px, 5vw, 56px)', lineHeight: 1.07, letterSpacing: '-0.28px' }}
+          >
             PushOver Serverless Platform
-          </h2>
-          <p className="text-lg text-zinc-400 mb-8">
+          </h1>
+          <p className="text-white/60 mb-8" style={{ fontSize: '17px' }}>
             메시지 전송, 웹훅 관리, 기록 조회
           </p>
+
+          {showBanner && (
+            <div className="bg-amber-900/30 border border-amber-700 rounded-2xl p-4 mb-6 max-w-md mx-auto text-left">
+              <div className="flex items-center gap-3">
+                <span className="text-xl">⚠️</span>
+                <div className="flex-1">
+                  <p className="font-medium text-amber-200 text-sm">PushOver 설정이 필요합니다</p>
+                  <p className="text-xs text-white/50">Settings에서 API Token과 User Key를 설정하세요</p>
+                </div>
+                <Link
+                  href="/settings"
+                  className="px-4 py-2 bg-amber-600 text-white rounded-[980px] text-sm font-medium hover:bg-amber-700 transition-colors whitespace-nowrap"
+                >
+                  설정하기
+                </Link>
+              </div>
+            </div>
+          )}
+
           <button
             onClick={() => setShowModal(true)}
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+            className="px-8 py-3 bg-[var(--color-apple-blue)] text-white rounded-[980px] font-medium hover:bg-[var(--color-apple-blue-hover)] transition-colors"
+            style={{ fontSize: '17px' }}
           >
             메시지 보내기
           </button>
         </div>
-      </main>
+      </section>
 
+      {/* Section 2: Light Content */}
+      <section className="bg-[var(--color-apple-light)] py-16 px-6">
+        <div className="max-w-[980px] mx-auto grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div className="bg-white rounded-[16px] p-6" style={{ boxShadow: 'var(--shadow-apple)' }}>
+            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 mb-2">Platform</p>
+            <p className="text-[21px] font-bold text-[var(--color-apple-near-black)]">Cloudflare Workers</p>
+            <p className="text-sm text-zinc-500 mt-1">Serverless 메시지 전송</p>
+          </div>
+          <div className="bg-white rounded-[16px] p-6" style={{ boxShadow: 'var(--shadow-apple)' }}>
+            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 mb-2">Storage</p>
+            <p className="text-[21px] font-bold text-[var(--color-apple-near-black)]">D1 + KV + R2</p>
+            <p className="text-sm text-zinc-500 mt-1">메시지 기록, 설정, 이미지</p>
+          </div>
+        </div>
+      </section>
+
+      {/* Message Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-zinc-900 rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
-            <h3 className="text-lg font-semibold mb-4 text-zinc-100">메시지 보내기</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={closeModal}>
+          <div className="absolute inset-0 bg-black/50" />
+          <div
+            className="relative bg-white rounded-[16px] max-w-md w-full mx-4 p-6"
+            style={{ boxShadow: 'var(--shadow-apple)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-semibold mb-4 text-[var(--color-apple-near-black)]">메시지 보내기</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-2">
+                <label className="block text-xs font-semibold uppercase tracking-wide text-zinc-500 mb-1.5">
                   제목 (선택)
                 </label>
                 <input
@@ -144,11 +167,11 @@ export default function Home() {
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="메시지 제목"
-                  className="w-full px-3 py-2 border border-zinc-700 rounded-lg bg-zinc-800 text-zinc-100"
+                  className="w-full px-3 py-3 rounded-[12px] bg-[var(--color-apple-light)] border-0 text-[var(--color-apple-near-black)] focus:outline-none focus:ring-2 focus:ring-[var(--color-apple-blue)]"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-2">
+                <label className="block text-xs font-semibold uppercase tracking-wide text-zinc-500 mb-1.5">
                   메시지
                 </label>
                 <textarea
@@ -157,20 +180,20 @@ export default function Home() {
                   placeholder="전송할 메시지"
                   rows={4}
                   required
-                  className="w-full px-3 py-2 border border-zinc-700 rounded-lg bg-zinc-800 text-zinc-100"
+                  className="w-full px-3 py-3 rounded-[12px] bg-[var(--color-apple-light)] border-0 text-[var(--color-apple-near-black)] focus:outline-none focus:ring-2 focus:ring-[var(--color-apple-blue)]"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-2">
+                <label className="block text-xs font-semibold uppercase tracking-wide text-zinc-500 mb-1.5">
                   이미지 첨부 (선택)
                 </label>
                 {imagePreview ? (
                   <div className="relative">
-                    <img src={imagePreview} alt="preview" className="max-h-40 rounded-lg border border-zinc-700" />
+                    <img src={imagePreview} alt="preview" className="max-h-40 rounded-[12px]" />
                     <button
                       type="button"
                       onClick={clearImage}
-                      className="absolute top-1 right-1 w-6 h-6 bg-black/70 text-white rounded-full text-xs flex items-center justify-center hover:bg-red-600"
+                      className="absolute top-1 right-1 w-6 h-6 bg-black/70 text-white rounded-full text-xs flex items-center justify-center hover:bg-[var(--color-apple-error)]"
                     >
                       ✕
                     </button>
@@ -180,26 +203,21 @@ export default function Home() {
                     type="file"
                     accept="image/*"
                     onChange={handleImageChange}
-                    className="w-full text-sm text-zinc-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-zinc-700 file:text-zinc-200 hover:file:bg-zinc-600"
+                    className="w-full text-sm text-zinc-400 file:mr-4 file:py-2 file:px-4 file:rounded-[980px] file:border file:border-[var(--color-apple-blue)] file:text-sm file:font-medium file:bg-transparent file:text-[var(--color-apple-blue)] hover:file:bg-[var(--color-apple-light)]"
                   />
                 )}
               </div>
-              <div className="flex gap-3 justify-end">
+              <div className="flex gap-3 justify-end pt-2">
                 <button
-                  onClick={() => {
-                    setShowModal(false);
-                    setMessage('');
-                    setTitle('');
-                    clearImage();
-                  }}
-                  className="px-4 py-2 border border-zinc-700 rounded-lg font-medium hover:bg-zinc-800 transition-colors text-zinc-300"
+                  onClick={closeModal}
+                  className="px-5 py-2.5 border border-[var(--color-apple-blue)] rounded-[980px] font-medium text-[var(--color-apple-blue)] hover:bg-[var(--color-apple-light)] transition-colors"
                 >
                   취소
                 </button>
                 <button
                   onClick={handleSend}
                   disabled={!message || sending}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                  className="px-5 py-2.5 bg-[var(--color-apple-blue)] text-white rounded-[980px] font-medium hover:bg-[var(--color-apple-blue-hover)] disabled:opacity-50 transition-colors"
                 >
                   {sending ? '전송 중...' : '전송'}
                 </button>
