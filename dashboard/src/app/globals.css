@@ -1,26 +1,57 @@
 @import "tailwindcss";
 
+/* Apple Design System Tokens */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Primary */
+  --color-apple-black: #000000;
+  --color-apple-light: #f5f5f7;
+  --color-apple-near-black: #1d1d1f;
+  --color-apple-white: #ffffff;
+
+  /* Interactive */
+  --color-apple-blue: #0071e3;
+  --color-apple-blue-hover: #0077ed;
+  --color-apple-link: #0066cc;
+  --color-apple-link-dark: #2997ff;
+
+  /* Surface (dark sections) */
+  --color-apple-card-dark: #1d1d1f;
+  --color-apple-surface-dark: #272729;
+
+  /* Functional */
+  --color-apple-success: #22c55e;
+  --color-apple-warning: #f59e0b;
+  --color-apple-error: #ef4444;
+
+  /* Shadow — inline styles에서 var(--shadow-apple)로 참조 */
+  --shadow-apple: 3px 5px 30px 0px rgba(0, 0, 0, 0.22);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  /* Colors — Tailwind utility classes (bg-apple-blue 등)로 사용 가능 */
+  --color-apple-black: var(--color-apple-black);
+  --color-apple-light: var(--color-apple-light);
+  --color-apple-near-black: var(--color-apple-near-black);
+  --color-apple-white: var(--color-apple-white);
+  --color-apple-blue: var(--color-apple-blue);
+  --color-apple-blue-hover: var(--color-apple-blue-hover);
+  --color-apple-link: var(--color-apple-link);
+  --color-apple-link-dark: var(--color-apple-link-dark);
+  --color-apple-card-dark: var(--color-apple-card-dark);
+  --color-apple-surface-dark: var(--color-apple-surface-dark);
+  --color-apple-success: var(--color-apple-success);
+  --color-apple-warning: var(--color-apple-warning);
+  --color-apple-error: var(--color-apple-error);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* Font — System Font Stack */
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
+
+  /* Shadow */
+  --shadow-apple: var(--shadow-apple);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
