@@ -28,60 +28,66 @@ export function WorkerTab({ settings, onUpdate, onReset }: WorkerTabProps) {
   const handleReset = () => {
     if (showResetConfirm) {
       onReset();
-      // useEffect가 settings.worker 변경을 자동으로 반영함
       setShowResetConfirm(false);
     } else {
       setShowResetConfirm(true);
     }
   };
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3 mb-6">
-        <span className="text-2xl">⚙️</span>
-        <div>
-          <h3 className="font-semibold text-zinc-100">Worker 설정</h3>
-          <p className="text-sm text-zinc-400">Cloudflare Worker 구성</p>
-        </div>
-      </div>
+  const inputClass = 'w-full px-3 py-3 rounded-[12px] bg-[var(--color-apple-light)] border-0 text-[var(--color-apple-near-black)] font-mono text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-apple-blue)]';
 
+  return (
+    <div className="space-y-5">
       <div>
-        <label className="block text-sm font-medium text-zinc-300 mb-2">
-          Worker URL <span className="text-red-400">*</span>
+        <label className="block text-xs font-semibold uppercase tracking-wide text-zinc-500 mb-1.5">
+          Worker URL <span className="text-[var(--color-apple-error)]">*</span>
         </label>
         <input
           type="text"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           placeholder="https://pushover-worker.cromksy.workers.dev"
-          className="w-full px-3 py-2 border border-zinc-700 rounded-lg bg-zinc-800 text-zinc-100 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className={inputClass}
         />
-        <p className="text-xs text-zinc-500 mt-1">Cloudflare Worker 배포 URL</p>
+        <p className="text-xs text-zinc-400 mt-1">Cloudflare Worker 배포 URL</p>
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-zinc-300 mb-2">
-          Worker Token (CF_WORKER_TOKEN) <span className="text-red-400">*</span>
+        <label className="block text-xs font-semibold uppercase tracking-wide text-zinc-500 mb-1.5">
+          Worker Token (CF_WORKER_TOKEN) <span className="text-[var(--color-apple-error)]">*</span>
         </label>
         <input
           type="password"
           value={token}
           onChange={(e) => setToken(e.target.value)}
           placeholder="Worker API 인증 토큰"
-          className="w-full px-3 py-2 border border-zinc-700 rounded-lg bg-zinc-800 text-zinc-100 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className={inputClass}
         />
-        <p className="text-xs text-zinc-500 mt-1">Worker D1에 등록된 인증 토큰</p>
+        <p className="text-xs text-zinc-400 mt-1">Worker D1에 등록된 인증 토큰</p>
       </div>
 
-      <div className="flex gap-3">
-        <button onClick={handleSave} className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors">
+      <div className="flex gap-3 pt-2">
+        <button
+          onClick={handleSave}
+          className="px-5 py-2.5 bg-[var(--color-apple-blue)] text-white rounded-[980px] font-medium hover:bg-[var(--color-apple-blue-hover)] transition-colors"
+        >
           저장
         </button>
-        <button onClick={handleReset} className={`px-4 py-2 rounded-lg font-medium transition-colors ${showResetConfirm ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-zinc-700 text-zinc-100 hover:bg-zinc-600'}`}>
+        <button
+          onClick={handleReset}
+          className={`px-5 py-2.5 rounded-[980px] font-medium transition-colors ${
+            showResetConfirm
+              ? 'bg-[var(--color-apple-error)] text-white hover:opacity-90'
+              : 'border border-[var(--color-apple-error)] text-[var(--color-apple-error)] hover:bg-red-50'
+          }`}
+        >
           {showResetConfirm ? '확인' : '초기화'}
         </button>
         {showResetConfirm && (
-          <button onClick={() => setShowResetConfirm(false)} className="px-4 py-2 bg-zinc-700 text-zinc-100 rounded-lg font-medium hover:bg-zinc-600">
+          <button
+            onClick={() => setShowResetConfirm(false)}
+            className="px-5 py-2.5 border border-zinc-300 text-zinc-600 rounded-[980px] font-medium hover:bg-[var(--color-apple-light)] transition-colors"
+          >
             취소
           </button>
         )}

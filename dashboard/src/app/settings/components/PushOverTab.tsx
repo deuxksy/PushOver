@@ -67,57 +67,56 @@ export function PushOverTab({ settings, onUpdate }: PushOverTabProps) {
     }
   };
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3 mb-6">
-        <span className="text-2xl">📱</span>
-        <div>
-          <h3 className="font-semibold text-zinc-100">PushOver 설정</h3>
-          <p className="text-sm text-zinc-400">PushOver API 인증 정보</p>
-        </div>
-      </div>
+  const inputClass = 'w-full px-3 py-3 rounded-[12px] bg-[var(--color-apple-light)] border-0 text-[var(--color-apple-near-black)] font-mono text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-apple-blue)]';
 
+  return (
+    <div className="space-y-5">
       <div>
-        <label className="block text-sm font-medium text-zinc-300 mb-2">
-          API Token <span className="text-red-400">*</span>
+        <label className="block text-xs font-semibold uppercase tracking-wide text-zinc-500 mb-1.5">
+          API Token <span className="text-[var(--color-apple-error)]">*</span>
         </label>
         <input
           type="password"
           value={apiToken}
           onChange={(e) => setApiToken(e.target.value)}
           placeholder="azGDORePK8gMaC0QOYAMyEL..."
-          className="w-full px-3 py-2 border border-zinc-700 rounded-lg bg-zinc-800 text-zinc-100 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className={inputClass}
         />
-        <p className="text-xs text-zinc-500 mt-1">pushover.net/apps 에서 확인</p>
+        <p className="text-xs text-zinc-400 mt-1">pushover.net/apps 에서 확인</p>
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-zinc-300 mb-2">
-          User Key <span className="text-red-400">*</span>
+        <label className="block text-xs font-semibold uppercase tracking-wide text-zinc-500 mb-1.5">
+          User Key <span className="text-[var(--color-apple-error)]">*</span>
         </label>
         <input
           type="password"
           value={userKey}
           onChange={(e) => setUserKey(e.target.value)}
           placeholder="uQiRzpo4DXghDmr9QzzfQu27cmVRsG..."
-          className="w-full px-3 py-2 border border-zinc-700 rounded-lg bg-zinc-800 text-zinc-100 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className={inputClass}
         />
-        <p className="text-xs text-zinc-500 mt-1">pushover.net 메인 페이지 상단</p>
+        <p className="text-xs text-zinc-400 mt-1">pushover.net 메인 페이지 상단</p>
       </div>
 
       {testResult && (
-        <div className={`p-3 rounded-lg ${testResult.success ? 'bg-green-900/30 border border-green-700' : 'bg-red-900/30 border border-red-700'}`}>
-          <p className={`text-sm ${testResult.success ? 'text-green-400' : 'text-red-400'}`}>
-            {testResult.message}
-          </p>
+        <div className={`p-3 rounded-[12px] ${testResult.success ? 'bg-green-50 border border-green-200 text-green-700' : 'bg-red-50 border border-red-200 text-red-700'}`}>
+          <p className="text-sm">{testResult.message}</p>
         </div>
       )}
 
-      <div className="flex gap-3">
-        <button onClick={handleSave} className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors">
+      <div className="flex gap-3 pt-2">
+        <button
+          onClick={handleSave}
+          className="px-5 py-2.5 bg-[var(--color-apple-blue)] text-white rounded-[980px] font-medium hover:bg-[var(--color-apple-blue-hover)] transition-colors"
+        >
           저장
         </button>
-        <button onClick={handleTest} disabled={isTesting} className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors disabled:opacity-50">
+        <button
+          onClick={handleTest}
+          disabled={isTesting}
+          className="px-5 py-2.5 border border-[var(--color-apple-blue)] text-[var(--color-apple-blue)] rounded-[980px] font-medium hover:bg-[var(--color-apple-light)] transition-colors disabled:opacity-50"
+        >
           {isTesting ? '테스트 중...' : '테스트'}
         </button>
       </div>
