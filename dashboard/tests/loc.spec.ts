@@ -120,7 +120,7 @@ test.describe.serial('사용자 흐름: 설정 → 전송 → 이력', () => {
     await injectSettings(page);
 
     await page.goto('/');
-    await expect(page.locator('h1')).toContainText('PushOver Dashboard');
+    await expect(page.locator('h1')).toContainText('PushOver Serverless Platform');
 
     // 모달 열기
     await page.getByRole('button', { name: '메시지 보내기' }).click();
@@ -154,7 +154,7 @@ test.describe.serial('사용자 흐름: 설정 → 전송 → 이력', () => {
     await injectSettings(page);
 
     await page.goto('/');
-    await expect(page.locator('h1')).toContainText('PushOver Dashboard');
+    await expect(page.locator('h1')).toContainText('PushOver Serverless Platform');
 
     // 모달 열기
     await page.getByRole('button', { name: '메시지 보내기' }).click();
