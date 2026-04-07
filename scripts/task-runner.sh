@@ -30,7 +30,7 @@ set -e
 END_EPOCH=$(date +%s)
 END_FMT=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
 
-ELAPSED=$((END_EPOCH -START_EPOCH))
+ELAPSED=$((END_EPOCH - START_EPOCH))
 ELAPSED_FMT=$(printf "%02dm %02ds" $((ELAPSED / 60)) $((ELAPSED % 60)))
 
 # ── Status line ──
@@ -39,10 +39,9 @@ if [ "$EXIT_CODE" -eq 0 ]; then
   LINE="${STATUS} ${TASK_NAME} | START: ${START_FMT} | END: ${END_FMT} | ELAPSED: ${ELAPSED_FMT}"
 else
   STATUS="[✗]"
-  LINE="${STATUS} ${TASK_NAME}| START: ${START_FMT} | END: ${END_FMT} | ELAPSED: ${ELAPSED_FMT} | EXIT: ${EXIT_CODE}"
+  LINE="${STATUS} ${TASK_NAME} | START: ${START_FMT} | END: ${END_FMT} | ELAPSED: ${ELAPSED_FMT} | EXIT: ${EXIT_CODE}"
 fi
 
 echo "$LINE"
 echo "$LINE" >> "$LOG_FILE"
-
 exit "$EXIT_CODE"
