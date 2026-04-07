@@ -14,7 +14,7 @@ endif
       clean-r2 \
       destroy-all destroy-cloud destroy-dashboard destroy-worker \
       test test-sdk test-cli test-worker test-worker-verbose test-dashboard-loc test-dashboard-dev test-dashboard-all \
-      dev loc loc-dashboard loc-worker
+      loc loc-dashboard loc-worker
 
 # ── Infrastructure: 인프라 (OpenTofu) ──
 # init    백엔드 초기화
@@ -233,12 +233,10 @@ test-dashboard-all:
 
 # ── Dev: 로컬 개발 서버 ──
 # loc            전체 개발 서버 실행 (loc-dashboard + loc-worker)
-# dev            전체 개발 서버 실행 (alias: loc)
 # loc-dashboard  Next.js 개발 서버 (http://localhost:3000)
 # loc-worker     Worker 로컬 개발 서버 (wrangler dev)
 
 loc: loc-dashboard loc-worker
-dev: loc-dashboard loc-worker
 loc-dashboard:
 	@echo "Starting Dashboard dev server..."
 	@cd dashboard && pnpm loc
