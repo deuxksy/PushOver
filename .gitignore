@@ -70,3 +70,9 @@ backups/
 *.auth-storage-state.json
 .worktrees/
 .claude/
+
+# ──────────────────────────────────────
+# Build Logs
+# ──────────────────────────────────────
+MAKE.log
+MAKE.log.*.gz
